@@ -1,0 +1,1239 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>大乐透 AI 预测系统</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js">
+</script>
+<script>
+  // Fallback CDN if jsdelivr is unreachable
+  if (typeof Chart === 'undefined') {
+    document.write('<script src="https://unpkg.com/chart.js@4.4.0/dist/chart.umd.min.js"><\/script>');
+  }
+</script>
+<style>
+
+  :root {
+    --bg: #0a0a1a;
+    --card-bg: rgba(16, 16, 40, 0.85);
+    --cyan: #00f0ff;
+    --magenta: #ff00aa;
+    --gold: #ffd700;
+    --green: #00ff88;
+    --red: #ff3366;
+    --blue: #4488ff;
+    --text: #e0e0f0;
+    --text-dim: #8888aa;
+    --border: rgba(255,255,255,0.08);
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'PingFang SC', 'Microsoft YaHei', sans-serif;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* Animated background */
+  .bg-stars {
+    position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+    pointer-events: none; z-index: 0;
+    background:
+      radial-gradient(1px 1px at 10% 20%, rgba(255,255,255,0.4), transparent),
+      radial-gradient(1px 1px at 25% 45%, rgba(255,255,255,0.3), transparent),
+      radial-gradient(1.5px 1.5px at 40% 15%, rgba(255,255,255,0.5), transparent),
+      radial-gradient(1px 1px at 55% 65%, rgba(255,255,255,0.3), transparent),
+      radial-gradient(1.5px 1.5px at 70% 35%, rgba(255,255,255,0.4), transparent),
+      radial-gradient(1px 1px at 85% 55%, rgba(255,255,255,0.3), transparent),
+      radial-gradient(1px 1px at 15% 75%, rgba(255,255,255,0.35), transparent),
+      radial-gradient(1.5px 1.5px at 60% 85%, rgba(255,255,255,0.4), transparent),
+      radial-gradient(1px 1px at 92% 10%, rgba(255,255,255,0.3), transparent),
+      radial-gradient(1px 1px at 33% 90%, rgba(255,255,255,0.25), transparent);
+  }
+  .bg-glow {
+    position: fixed; pointer-events: none; z-index: 0;
+    width: 600px; height: 600px; border-radius: 50%;
+    filter: blur(150px); opacity: 0.12;
+  }
+  .bg-glow.n1 { top: -200px; left: -100px; background: var(--cyan); }
+  .bg-glow.n2 { bottom: -200px; right: -100px; background: var(--magenta); }
+
+  /* Layout */
+  .app {
+    position: relative; z-index: 1;
+    max-width: 1320px; margin: 0 auto; padding: 20px;
+  }
+
+  /* Header */
+  .header {
+    text-align: center; padding: 40px 20px 30px;
+    position: relative;
+  }
+  .header h1 {
+    font-family: 'SF Mono', 'Cascadia Code', 'Consolas', monospace;
+    font-size: 2.8em; font-weight: 900;
+    background: linear-gradient(135deg, var(--cyan), var(--magenta), var(--gold));
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    background-clip: text;
+    text-shadow: none;
+    letter-spacing: 4px;
+    margin-bottom: 8px;
+  }
+  .header .subtitle {
+    color: var(--text-dim); font-size: 0.95em;
+    letter-spacing: 2px;
+  }
+  .header::after {
+    content: '';
+    display: block; width: 200px; height: 2px;
+    margin: 16px auto 0;
+    background: linear-gradient(90deg, transparent, var(--cyan), var(--magenta), transparent);
+  }
+
+  /* Countdown bar */
+  .countdown-bar {
+    display: flex; align-items: center; justify-content: center;
+    gap: 20px; flex-wrap: wrap;
+    padding: 18px 30px; margin: 0 0 24px;
+    background: var(--card-bg);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    backdrop-filter: blur(20px);
+  }
+  .countdown-bar .next-draw {
+    font-weight: 700; font-size: 1.05em;
+    color: var(--cyan);
+  }
+  .countdown-bar .countdown {
+    font-family: 'SF Mono', 'Cascadia Code', 'Consolas', monospace;
+    font-size: 1.6em; font-weight: 700;
+    color: var(--gold);
+    min-width: 180px; text-align: center;
+  }
+  .countdown-bar .draw-day-badge {
+    padding: 4px 14px; border-radius: 20px;
+    font-size: 0.85em; font-weight: 600;
+  }
+  .draw-day-badge.today {
+    background: rgba(0,255,136,0.15); color: var(--green);
+    border: 1px solid rgba(0,255,136,0.3);
+    animation: pulse-badge 2s infinite;
+  }
+  .draw-day-badge.waiting {
+    background: rgba(255,255,255,0.05); color: var(--text-dim);
+    border: 1px solid rgba(255,255,255,0.1);
+  }
+  @keyframes pulse-badge {
+    0%,100% { opacity: 1; }
+    50% { opacity: 0.5; }
+  }
+
+  /* Section titles */
+  .section-title {
+    font-family: 'SF Mono', 'Cascadia Code', 'Consolas', monospace;
+    font-size: 1.3em; font-weight: 700;
+    margin-bottom: 16px;
+    padding-left: 14px;
+    border-left: 3px solid var(--cyan);
+    color: var(--text);
+    letter-spacing: 2px;
+  }
+
+  /* Cards */
+  .card {
+    background: var(--card-bg);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 24px;
+    margin-bottom: 24px;
+    backdrop-filter: blur(20px);
+    transition: border-color 0.3s;
+  }
+  .card:hover { border-color: rgba(255,255,255,0.18); }
+
+  /* Grid */
+  .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
+  .grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+
+  /* Lottery balls */
+  .balls { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+  .ball {
+    width: 42px; height: 42px; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-weight: 700; font-size: 1.05em;
+    color: #fff; position: relative;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.4), inset 0 -3px 6px rgba(0,0,0,0.3);
+  }
+  .ball.front {
+    background: linear-gradient(135deg, #e74c3c, #c0392b);
+  }
+  .ball.back {
+    background: linear-gradient(135deg, #3498db, #2471a3);
+  }
+  .ball.small {
+    width: 32px; height: 32px; font-size: 0.85em;
+  }
+  .ball.predicted {
+    animation: glow-ball 1.5s ease-in-out infinite;
+    box-shadow: 0 0 20px rgba(255,215,0,0.6), 0 4px 15px rgba(0,0,0,0.4);
+  }
+  @keyframes glow-ball {
+    0%,100% { box-shadow: 0 0 20px rgba(255,215,0,0.6), 0 4px 15px rgba(0,0,0,0.4); }
+    50% { box-shadow: 0 0 35px rgba(255,215,0,0.9), 0 4px 15px rgba(0,0,0,0.4); }
+  }
+
+  /* Recent draws */
+  .recent-draws { display: flex; flex-direction: column; gap: 8px; }
+  .recent-draw-row {
+    display: flex; align-items: center; gap: 12px;
+    padding: 10px 16px; border-radius: 10px;
+    background: rgba(255,255,255,0.02);
+    transition: background 0.2s;
+  }
+  .recent-draw-row:hover { background: rgba(255,255,255,0.05); }
+  .recent-draw-row .qihao {
+    font-weight: 600; color: var(--cyan);
+    min-width: 70px; font-size: 0.9em;
+  }
+  .recent-draw-row .date {
+    color: var(--text-dim); font-size: 0.8em; min-width: 85px;
+  }
+
+  /* Table */
+  .table-wrap {
+    max-height: 600px; overflow-y: auto;
+    scrollbar-width: thin; scrollbar-color: rgba(255,255,255,0.15) transparent;
+  }
+  .table-wrap::-webkit-scrollbar { width: 6px; }
+  .table-wrap::-webkit-scrollbar-track { background: transparent; }
+  .table-wrap::-webkit-scrollbar-thumb {
+    background: rgba(255,255,255,0.15); border-radius: 3px;
+  }
+  table {
+    width: 100%; border-collapse: collapse; font-size: 0.9em;
+  }
+  thead { position: sticky; top: 0; z-index: 2; }
+  thead th {
+    background: rgba(10,10,26,0.95);
+    padding: 12px 10px; text-align: center;
+    color: var(--cyan); font-weight: 600;
+    border-bottom: 2px solid rgba(0,240,255,0.3);
+    font-size: 0.85em; letter-spacing: 1px;
+  }
+  tbody td {
+    padding: 8px 6px; text-align: center;
+    border-bottom: 1px solid rgba(255,255,255,0.04);
+  }
+  tbody tr { transition: background 0.2s; }
+  tbody tr:hover { background: rgba(255,255,255,0.04); }
+
+  /* Charts area */
+  .chart-container {
+    position: relative; width: 100%;
+  }
+  .chart-container canvas { width: 100% !important; }
+
+  /* Prediction panel */
+  .prediction-panel {
+    position: relative; overflow: hidden;
+  }
+  .prediction-panel::before {
+    content: ''; position: absolute; top: -50%; left: -50%;
+    width: 200%; height: 200%;
+    background: conic-gradient(from 0deg, transparent, rgba(255,215,0,0.04), transparent, rgba(0,240,255,0.04), transparent);
+    animation: rotate-glow 8s linear infinite;
+  }
+  @keyframes rotate-glow { to { transform: rotate(360deg); } }
+
+  .prediction-content { position: relative; z-index: 1; }
+
+  /* Three strategy cards */
+  .pred-strategies {
+    display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px;
+    margin-bottom: 20px;
+  }
+  .pred-strategy-card {
+    background: rgba(255,255,255,0.02);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 20px 16px;
+    text-align: center;
+    transition: all 0.3s;
+    position: relative; overflow: hidden;
+  }
+  .pred-strategy-card:hover {
+    border-color: rgba(255,255,255,0.18);
+    transform: translateY(-2px);
+    box-shadow: 0 8px 30px rgba(0,0,0,0.3);
+  }
+  .pred-strategy-card::after {
+    content: ''; position: absolute; bottom: 0; left: 0; right: 0; height: 3px;
+    border-radius: 0 0 14px 14px;
+  }
+  .pred-strategy-card.s1 { border-top: 2px solid var(--cyan); }
+  .pred-strategy-card.s1::after { background: var(--cyan); }
+  .pred-strategy-card.s2 { border-top: 2px solid var(--gold); }
+  .pred-strategy-card.s2::after { background: var(--gold); }
+  .pred-strategy-card.s3 { border-top: 2px solid var(--magenta); }
+  .pred-strategy-card.s3::after { background: var(--magenta); }
+
+  .pred-strategy-card .strat-name {
+    font-family: 'SF Mono', 'Cascadia Code', 'Consolas', monospace;
+    font-size: 0.95em; font-weight: 700;
+    letter-spacing: 2px;
+    margin-bottom: 4px;
+  }
+  .pred-strategy-card .strat-desc {
+    font-size: 0.72em; color: var(--text-dim);
+    margin-bottom: 16px; line-height: 1.5;
+  }
+  .pred-strategy-card .strat-nums {
+    display: flex; flex-direction: column; gap: 10px; align-items: center;
+  }
+  .pred-strategy-card .strat-info {
+    margin-top: 12px;
+    font-size: 0.72em; color: var(--text-dim);
+    display: flex; gap: 12px; justify-content: center;
+  }
+  .pred-strategy-card .strat-info span {
+    background: rgba(255,255,255,0.04);
+    padding: 2px 10px; border-radius: 10px;
+  }
+
+  .pred-numbers {
+    display: flex; gap: 20px; align-items: center; justify-content: center;
+    flex-wrap: wrap; padding: 20px 0;
+  }
+  .pred-group { text-align: center; }
+  .pred-group .label {
+    font-size: 0.8em; color: var(--text-dim);
+    margin-bottom: 10px; letter-spacing: 2px;
+  }
+
+  @media (max-width: 900px) {
+    .pred-strategies { grid-template-columns: 1fr; }
+  }
+
+  /* Reasoning */
+  .reasoning { margin-top: 20px; }
+  .reason-item {
+    padding: 12px 16px; margin-bottom: 8px;
+    border-radius: 8px; font-size: 0.9em; line-height: 1.6;
+    background: rgba(255,255,255,0.03);
+    border-left: 3px solid var(--cyan);
+  }
+  .reason-item .tag {
+    display: inline-block;
+    padding: 2px 10px; border-radius: 10px;
+    font-size: 0.8em; font-weight: 600; margin-right: 8px;
+  }
+  .tag.hot { background: rgba(255,51,102,0.2); color: var(--red); }
+  .tag.cold { background: rgba(68,136,255,0.2); color: var(--blue); }
+  .tag.trend { background: rgba(0,240,255,0.15); color: var(--cyan); }
+  .tag.pattern { background: rgba(255,215,0,0.15); color: var(--gold); }
+
+  /* Score indicators */
+  .score-bar-wrap {
+    display: flex; align-items: center; gap: 8px;
+    margin: 4px 0;
+  }
+  .score-bar-wrap .num {
+    font-weight: 700; min-width: 24px; color: var(--gold);
+  }
+  .score-bar {
+    flex: 1; height: 6px; border-radius: 3px;
+    background: rgba(255,255,255,0.08);
+    overflow: hidden;
+  }
+  .score-bar .fill {
+    height: 100%; border-radius: 3px;
+    background: linear-gradient(90deg, var(--cyan), var(--magenta));
+    transition: width 0.6s ease;
+  }
+
+  /* Hot/Cold legend */
+  .legend { display: flex; gap: 20px; flex-wrap: wrap; margin-bottom: 16px; }
+  .legend-item { display: flex; align-items: center; gap: 6px; font-size: 0.85em; }
+  .legend-dot {
+    width: 12px; height: 12px; border-radius: 50%;
+  }
+  .legend-dot.hot-num { background: var(--red); }
+  .legend-dot.warm-num { background: var(--gold); }
+  .legend-dot.cold-num { background: var(--blue); }
+
+  /* Disclaimer */
+  .disclaimer {
+    text-align: center; padding: 20px; color: var(--text-dim);
+    font-size: 0.8em; line-height: 1.6;
+    border-top: 1px solid var(--border); margin-top: 20px;
+  }
+
+  /* ===== MOBILE & WECHAT OPTIMIZATION ===== */
+  @media (max-width: 900px) {
+    .app { padding: 10px; }
+    .header { padding: 24px 12px 16px; }
+    .header h1 { font-size: 1.5em; letter-spacing: 2px; }
+    .header .subtitle { font-size: 0.7em; letter-spacing: 1px; }
+    .header::after { width: 120px; }
+    .grid-2, .grid-3 { grid-template-columns: 1fr; gap: 12px; }
+    .pred-strategies {
+      grid-template-columns: 1fr; gap: 12px;
+    }
+
+    .countdown-bar {
+      flex-direction: column; gap: 6px; padding: 12px 16px;
+      font-size: 0.9em; text-align: center;
+    }
+    .countdown-bar .countdown { font-size: 1.3em; min-width: auto; }
+
+    .card { padding: 16px; margin-bottom: 14px; border-radius: 12px; }
+
+    .section-title { font-size: 1.05em; margin-bottom: 12px; }
+
+    /* Larger balls for touch readability */
+    .ball { width: 38px; height: 38px; font-size: 1em; }
+    .ball.small { width: 28px; height: 28px; font-size: 0.8em; }
+
+    /* Recent draws: horizontal scroll */
+    .recent-draws { gap: 4px; }
+    .recent-draw-row {
+      padding: 8px 10px; gap: 6px; flex-wrap: wrap;
+    }
+    .recent-draw-row .qihao { min-width: 55px; font-size: 0.8em; }
+    .recent-draw-row .date { min-width: 70px; font-size: 0.7em; }
+
+    /* Strategy cards on mobile */
+    .pred-strategy-card { padding: 14px 10px; }
+    .pred-strategy-card .strat-name { font-size: 0.9em; }
+    .pred-strategy-card .strat-desc { font-size: 0.7em; }
+
+    /* Table: horizontal scroll */
+    .table-wrap {
+      max-height: none; overflow-x: auto; -webkit-overflow-scrolling: touch;
+    }
+    table { font-size: 0.7em; white-space: nowrap; }
+    thead th { padding: 8px 5px; font-size: 0.7em; }
+    tbody td { padding: 6px 4px; }
+
+    /* Charts: full width */
+    .chart-container canvas { height: 250px !important; }
+
+    /* Reasoning */
+    .reason-item { padding: 10px 12px; font-size: 0.82em; }
+    .reason-item .tag { font-size: 0.7em; padding: 1px 7px; }
+
+    .stat-card { padding: 14px; }
+    .stat-card .value { font-size: 1.3em; }
+
+    .disclaimer { font-size: 0.7em; padding: 14px; }
+
+    .btn { padding: 8px 16px; font-size: 0.8em; }
+
+    .score-bar-wrap { margin: 2px 0; }
+    .score-bar { height: 4px; }
+  }
+
+  /* Small phones (iPhone SE, etc.) */
+  @media (max-width: 400px) {
+    .header h1 { font-size: 1.3em; }
+    .ball { width: 34px; height: 34px; font-size: 0.9em; }
+    .ball.small { width: 26px; height: 26px; font-size: 0.75em; }
+    .chart-container canvas { height: 200px !important; }
+    table { font-size: 0.65em; }
+    .pred-strategy-card { padding: 10px 8px; }
+  }
+
+  /* WeChat browser specific */
+  @media screen and (min-width: 320px) and (max-width: 900px) {
+    body {
+      -webkit-text-size-adjust: 100%;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .table-wrap::-webkit-scrollbar { height: 3px; }
+  }
+
+  /* Refresh button */
+  .btn {
+    padding: 10px 24px; border-radius: 8px; border: 1px solid var(--cyan);
+    background: rgba(0,240,255,0.08); color: var(--cyan);
+    font-weight: 600; cursor: pointer; font-size: 0.9em;
+    transition: all 0.3s;
+    letter-spacing: 1px;
+  }
+  .btn:hover {
+    background: rgba(0,240,255,0.18);
+    box-shadow: 0 0 20px rgba(0,240,255,0.2);
+  }
+  .btn.gold {
+    border-color: var(--gold); color: var(--gold);
+    background: rgba(255,215,0,0.08);
+  }
+  .btn.gold:hover {
+    background: rgba(255,215,0,0.18);
+    box-shadow: 0 0 20px rgba(255,215,0,0.2);
+  }
+
+  /* Stat cards */
+  .stat-card {
+    text-align: center; padding: 20px;
+    background: rgba(255,255,255,0.02);
+    border-radius: 12px; border: 1px solid var(--border);
+  }
+  .stat-card .value {
+    font-family: 'SF Mono', 'Cascadia Code', 'Consolas', monospace;
+    font-size: 2em; font-weight: 700;
+    background: linear-gradient(135deg, var(--cyan), var(--magenta));
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+  .stat-card .stat-label {
+    font-size: 0.8em; color: var(--text-dim); margin-top: 4px;
+  }
+</style>
+</head>
+<body>
+
+<div class="bg-stars"></div>
+<div class="bg-glow n1"></div>
+<div class="bg-glow n2"></div>
+
+<div class="app">
+  <!-- Header -->
+  <div class="header">
+    <h1>大乐透 AI 预测</h1>
+    <div class="subtitle">SUPER LOTTO PREDICTION SYSTEM</div>
+  </div>
+
+  <!-- Countdown -->
+  <div class="countdown-bar" id="countdownBar">
+    <span class="next-draw">下一期开奖</span>
+    <span class="countdown" id="countdown">--:--:--</span>
+    <span class="draw-day-badge waiting" id="drawBadge">等待开奖日</span>
+  </div>
+
+  <!-- Recent 5 draws highlight -->
+  <div class="card">
+    <div class="section-title">最近 5 期开奖</div>
+    <div class="recent-draws" id="recentDraws"></div>
+  </div>
+
+  <!-- Prediction Panel (highlighted on draw day) -->
+  <div class="card prediction-panel" id="predictionPanel">
+    <div class="prediction-content">
+      <div class="section-title" style="border-left-color: var(--gold);">本期预测号码</div>
+      <div class="pred-numbers" id="predNumbers"></div>
+      <div class="reasoning" id="reasoning"></div>
+    </div>
+  </div>
+
+  <!-- Stats row -->
+  <div class="grid-3" style="margin-bottom:24px" id="statCards"></div>
+
+  <!-- Trend Charts -->
+  <div class="grid-2">
+    <div class="card">
+      <div class="section-title">前区号码频率分布 (1-35)</div>
+      <div class="chart-container"><canvas id="chartFrontFreq"></canvas></div>
+    </div>
+    <div class="card">
+      <div class="section-title">后区号码频率分布 (1-12)</div>
+      <div class="chart-container"><canvas id="chartBackFreq"></canvas></div>
+    </div>
+  </div>
+
+  <div class="grid-2">
+    <div class="card">
+      <div class="section-title">前区遗漏走势 (距上次开出期数)</div>
+      <div class="chart-container"><canvas id="chartFrontMissing"></canvas></div>
+    </div>
+    <div class="card">
+      <div class="section-title">前区冷热号码分布</div>
+      <div class="legend">
+        <div class="legend-item"><span class="legend-dot hot-num"></span> 热号 (高频)</div>
+        <div class="legend-item"><span class="legend-dot warm-num"></span> 温号</div>
+        <div class="legend-item"><span class="legend-dot cold-num"></span> 冷号 (低频)</div>
+      </div>
+      <div class="chart-container"><canvas id="chartHotCold"></canvas></div>
+    </div>
+  </div>
+
+  <!-- Full history table -->
+  <div class="card">
+    <div class="section-title" style="display:flex;justify-content:space-between;align-items:center;">
+      <span>历史开奖数据 (近50期)</span>
+      <button class="btn" onclick="scrollToTop()">↑ 回到顶部</button>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>期号</th><th>日期</th><th>星期</th>
+            <th>前区 ①</th><th>前区 ②</th><th>前区 ③</th><th>前区 ④</th><th>前区 ⑤</th>
+            <th>后区 ①</th><th>后区 ②</th>
+            <th>和值</th><th>奇偶</th>
+          </tr>
+        </thead>
+        <tbody id="historyTable"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="disclaimer">
+    ⚠ 本预测系统基于历史数据统计与概率分析，仅供娱乐参考。彩票开奖具有完全随机性，任何预测方法均无法保证中奖。<br>
+    请理性购彩，量力而行。未成年人不得购买彩票。
+  </div>
+</div>
+
+<script>
+// ============================================================
+// DATA: Real historical draws from China Sports Lottery API
+// ============================================================
+const RAW_DATA = [
+  {qh:"26055",dt:"2026-05-20",f:[9,10,20,33,35],b:[4,11]},
+  {qh:"26054",dt:"2026-05-18",f:[2,6,14,22,24],b:[8,11]},
+  {qh:"26053",dt:"2026-05-16",f:[2,9,14,20,31],b:[5,9]},
+  {qh:"26052",dt:"2026-05-13",f:[2,3,20,28,33],b:[2,12]},
+  {qh:"26051",dt:"2026-05-11",f:[13,18,28,32,33],b:[2,11]},
+  {qh:"26050",dt:"2026-05-09",f:[6,10,14,23,33],b:[8,10]},
+  {qh:"26049",dt:"2026-05-06",f:[1,6,14,15,17],b:[2,3]},
+  {qh:"26048",dt:"2026-05-04",f:[11,17,20,23,35],b:[1,10]},
+  {qh:"26047",dt:"2026-05-02",f:[9,20,21,23,28],b:[6,11]},
+  {qh:"26046",dt:"2026-04-29",f:[1,13,18,27,33],b:[4,7]},
+  {qh:"26045",dt:"2026-04-27",f:[1,15,21,26,33],b:[4,7]},
+  {qh:"26044",dt:"2026-04-25",f:[3,8,22,26,29],b:[7,10]},
+  {qh:"26043",dt:"2026-04-22",f:[8,12,14,19,22],b:[11,12]},
+  {qh:"26042",dt:"2026-04-20",f:[2,7,13,19,24],b:[3,8]},
+  {qh:"26041",dt:"2026-04-18",f:[24,25,27,29,34],b:[2,6]},
+  {qh:"26040",dt:"2026-04-15",f:[6,12,13,21,34],b:[8,9]},
+  {qh:"26039",dt:"2026-04-13",f:[9,11,20,26,27],b:[6,9]},
+  {qh:"26038",dt:"2026-04-11",f:[8,17,21,33,35],b:[6,7]},
+  {qh:"26037",dt:"2026-04-08",f:[7,12,13,28,32],b:[6,8]},
+  {qh:"26036",dt:"2026-04-06",f:[4,7,16,26,32],b:[5,8]},
+  {qh:"26035",dt:"2026-04-04",f:[2,22,30,33,34],b:[8,12]},
+  {qh:"26034",dt:"2026-04-01",f:[11,12,25,26,27],b:[8,11]},
+  {qh:"26033",dt:"2026-03-30",f:[3,5,7,9,18],b:[2,10]},
+  {qh:"26032",dt:"2026-03-28",f:[3,4,19,26,32],b:[1,12]},
+  {qh:"26031",dt:"2026-03-25",f:[6,8,22,29,34],b:[5,7]},
+  {qh:"26030",dt:"2026-03-23",f:[2,13,22,28,34],b:[5,12]},
+  {qh:"26029",dt:"2026-03-21",f:[3,5,17,33,35],b:[5,7]},
+  {qh:"26028",dt:"2026-03-18",f:[15,27,29,30,34],b:[1,10]},
+  {qh:"26027",dt:"2026-03-16",f:[9,10,11,12,16],b:[1,11]},
+  {qh:"26026",dt:"2026-03-14",f:[10,11,22,26,32],b:[1,8]},
+  {qh:"26025",dt:"2026-03-11",f:[3,15,24,28,29],b:[3,7]},
+  {qh:"26024",dt:"2026-03-09",f:[2,4,8,10,21],b:[9,12]},
+  {qh:"26023",dt:"2026-03-07",f:[9,25,26,27,28],b:[1,8]},
+  {qh:"26005",dt:"2026-01-12",f:[2,4,16,23,35],b:[6,11]},
+  {qh:"26004",dt:"2026-01-10",f:[5,18,23,25,32],b:[5,9]},
+  {qh:"26003",dt:"2026-01-07",f:[2,9,11,15,16],b:[2,4]},
+  {qh:"26002",dt:"2026-01-05",f:[4,8,15,20,31],b:[7,8]},
+  {qh:"26001",dt:"2026-01-03",f:[7,9,23,27,32],b:[2,8]},
+  {qh:"25150",dt:"2025-12-31",f:[13,14,15,28,31],b:[1,5]},
+  {qh:"25149",dt:"2025-12-29",f:[24,26,30,31,32],b:[5,12]},
+  {qh:"25148",dt:"2025-12-27",f:[3,4,14,30,32],b:[8,12]},
+  {qh:"25147",dt:"2025-12-24",f:[6,16,21,25,33],b:[7,8]},
+  {qh:"25146",dt:"2025-12-22",f:[6,11,13,16,22],b:[2,3]},
+  {qh:"25145",dt:"2025-12-20",f:[5,7,20,22,25],b:[4,5]},
+  {qh:"25144",dt:"2025-12-17",f:[2,5,13,15,28],b:[5,8]},
+  {qh:"25143",dt:"2025-12-15",f:[3,4,18,24,29],b:[7,12]},
+  {qh:"25142",dt:"2025-12-13",f:[9,10,14,27,29],b:[2,9]},
+  {qh:"25141",dt:"2025-12-10",f:[4,9,24,28,29],b:[2,10]},
+  {qh:"25140",dt:"2025-12-08",f:[4,5,13,18,34],b:[2,8]},
+  {qh:"25139",dt:"2025-12-06",f:[8,18,22,30,35],b:[1,4]}
+];
+const DATA = RAW_DATA;
+
+// ============================================================
+// SCHEDULE: 大乐透 Mon/Wed/Sat draw schedule
+// ============================================================
+const DRAW_DAYS = [1, 3, 6]; // Mon=1, Wed=3, Sat=6
+const DAY_NAMES = ['日','一','二','三','四','五','六'];
+
+function getNextDrawDay() {
+  const now = new Date();
+  const today = now.getDay();
+  // Find next draw day
+  for (let i = 0; i < 7; i++) {
+    const checkDay = (today + i) % 7;
+    if (DRAW_DAYS.includes(checkDay)) {
+      const next = new Date(now);
+      next.setDate(next.getDate() + i);
+      next.setHours(20, 30, 0, 0); // 20:30 draw time
+      return { date: next, isToday: i === 0, dayOfWeek: checkDay };
+    }
+  }
+}
+
+function updateCountdown() {
+  const { date: nextDraw, isToday } = getNextDrawDay();
+  const now = new Date();
+  const diff = nextDraw - now;
+
+  if (diff <= 0) {
+    // Just passed draw time, recalculate
+    const newNext = getNextDrawDay();
+    document.getElementById('countdown').textContent = '已开奖';
+    document.getElementById('drawBadge').textContent = '等待下一期';
+    document.getElementById('drawBadge').className = 'draw-day-badge waiting';
+    return;
+  }
+
+  const h = Math.floor(diff / 3600000);
+  const m = Math.floor((diff % 3600000) / 60000);
+  const s = Math.floor((diff % 60000) / 1000);
+  document.getElementById('countdown').textContent =
+    `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
+
+  const badge = document.getElementById('drawBadge');
+  if (isToday) {
+    badge.textContent = '今天开奖日';
+    badge.className = 'draw-day-badge today';
+    document.getElementById('predictionPanel').style.borderColor = 'rgba(255,215,0,0.4)';
+    document.getElementById('predictionPanel').style.boxShadow = '0 0 40px rgba(255,215,0,0.1)';
+  } else {
+    const dayName = DAY_NAMES[nextDraw.getDay()];
+    badge.textContent = `下周${dayName}`;
+    badge.className = 'draw-day-badge waiting';
+  }
+}
+
+// ============================================================
+// ANALYSIS ENGINE
+// ============================================================
+function analyzeNumbers(data, range, zone) {
+  const freq = new Array(range + 1).fill(0);
+  const lastSeen = new Array(range + 1).fill(-1);
+  const recencyScore = new Array(range + 1).fill(0);
+
+  data.forEach((draw, idx) => {
+    const nums = zone === 'front' ? draw.f : draw.b;
+    nums.forEach(n => {
+      freq[n]++;
+      if (lastSeen[n] === -1 || lastSeen[n] > idx) {
+        lastSeen[n] = idx;
+      }
+    });
+  });
+
+  data.forEach((draw, idx) => {
+    const nums = zone === 'front' ? draw.f : draw.b;
+    const weight = Math.exp(-idx / 10);
+    nums.forEach(n => {
+      recencyScore[n] += weight;
+    });
+  });
+
+  return { freq, lastSeen, recencyScore };
+}
+
+function scoreWithStrategy(frontAnalysis, backAnalysis, wFreqF, wRecF, wMissF, wZoneF, wFreqB, wRecB, wMissB) {
+  // ===== FRONT ZONE SCORING (1-35) =====
+  const frontScores = [];
+  for (let n = 1; n <= 35; n++) {
+    let score = 0;
+    const reasons = [];
+
+    const fScore = (frontAnalysis.freq[n] / DATA.length) * wFreqF;
+    score += fScore;
+    if (frontAnalysis.freq[n] >= 8) reasons.push({tag:'hot', text:`高频热号：近50期出现${frontAnalysis.freq[n]}次`});
+
+    const rScore = frontAnalysis.recencyScore[n] * (wRecF / 3);
+    score += rScore;
+    if (frontAnalysis.recencyScore[n] > 1.5) reasons.push({tag:'trend', text:'近期走势活跃，呈上升趋势'});
+
+    const missingPeriods = frontAnalysis.lastSeen[n];
+    if (missingPeriods === -1) {
+      score += wMissF * 0.7;
+      reasons.push({tag:'cold', text:'近50期从未出现，极冷号回补概率高'});
+    } else if (missingPeriods >= 15) {
+      score += wMissF * 0.6;
+      reasons.push({tag:'cold', text:`遗漏${missingPeriods}期未出，属于冷号回补信号`});
+    } else if (missingPeriods >= 8) {
+      score += wMissF * 0.35;
+      reasons.push({tag:'cold', text:`已遗漏${missingPeriods}期，中长遗漏值得关注`});
+    } else if (missingPeriods >= 4) {
+      score += wMissF * 0.15;
+    }
+
+    const zone = n <= 12 ? 1 : n <= 24 ? 2 : 3;
+    const zoneCounts = [0,0,0,0];
+    DATA.forEach(d => d.f.forEach(fn => {
+      zoneCounts[fn <= 12 ? 1 : fn <= 24 ? 2 : 3]++;
+    }));
+    const avgZone = (zoneCounts[1] + zoneCounts[2] + zoneCounts[3]) / 3;
+    if (zoneCounts[zone] < avgZone * 0.9) {
+      score += wZoneF;
+      reasons.push({tag:'pattern', text:`第${zone}区出号偏少，区域回补需求`});
+    }
+
+    frontScores.push({ num: n, score: Math.round(score * 10) / 10, reasons, zone, odd: n % 2 === 1 });
+  }
+
+  // ===== BACK ZONE SCORING (1-12) =====
+  const backScores = [];
+  for (let n = 1; n <= 12; n++) {
+    let score = 0;
+    const reasons = [];
+
+    const fScore = (backAnalysis.freq[n] / DATA.length) * wFreqB;
+    score += fScore;
+    if (backAnalysis.freq[n] >= 10) reasons.push({tag:'hot', text:`后区热号：近50期出现${backAnalysis.freq[n]}次`});
+
+    const rScore = backAnalysis.recencyScore[n] * (wRecB / 3);
+    score += rScore;
+
+    const missingPeriods = backAnalysis.lastSeen[n];
+    if (missingPeriods === -1) {
+      score += wMissB * 0.75;
+      reasons.push({tag:'cold', text:'后区近50期从未出现，极冷号'});
+    } else if (missingPeriods >= 10) {
+      score += wMissB * 0.6;
+      reasons.push({tag:'cold', text:`后区遗漏${missingPeriods}期，冷号反弹概率高`});
+    } else if (missingPeriods >= 5) {
+      score += wMissB * 0.3;
+      reasons.push({tag:'cold', text:`后区遗漏${missingPeriods}期`});
+    }
+
+    backScores.push({ num: n, score: Math.round(score * 10) / 10, reasons, odd: n % 2 === 1 });
+  }
+
+  frontScores.sort((a, b) => b.score - a.score);
+  backScores.sort((a, b) => b.score - a.score);
+
+  const predictedFront = selectWithConstraint(frontScores, 5, 'front');
+  const predictedBack = selectWithConstraint(backScores, 2, 'back');
+
+  return {
+    front: predictedFront.map(x => x.num).sort((a,b) => a-b),
+    back: predictedBack.map(x => x.num).sort((a,b) => a-b),
+    frontScores: predictedFront,
+    backScores: predictedBack,
+    allFrontScores: frontScores,
+    allBackScores: backScores,
+    fSum: predictedFront.map(x => x.num).reduce((a,b)=>a+b,0),
+    fOdd: predictedFront.filter(x => x.odd).length,
+  };
+}
+
+function computeAllPredictions() {
+  const frontAnalysis = analyzeNumbers(DATA, 35, 'front');
+  const backAnalysis = analyzeNumbers(DATA, 12, 'back');
+
+  return [
+    {
+      name: '均衡策略',
+      desc: '攻守平衡 · 综合多维评分',
+      cls: 's1',
+      color: 'var(--cyan)',
+      detail: '频率40% 走势30% 遗漏20% 区域10%',
+      risk: '中低',
+      ...scoreWithStrategy(frontAnalysis, backAnalysis, 40, 30, 20, 10, 40, 30, 25),
+    },
+    {
+      name: '热号追击',
+      desc: '顺势而为 · 主攻活跃热号',
+      cls: 's2',
+      color: 'var(--gold)',
+      detail: '频率60% 走势25% 遗漏10% 区域5%',
+      risk: '低',
+      ...scoreWithStrategy(frontAnalysis, backAnalysis, 60, 25, 10, 5, 55, 30, 10),
+    },
+    {
+      name: '冷号回补',
+      desc: '博冷反弹 · 高风险高回报',
+      cls: 's3',
+      color: 'var(--magenta)',
+      detail: '频率15% 走势15% 遗漏60% 区域10%',
+      risk: '高',
+      ...scoreWithStrategy(frontAnalysis, backAnalysis, 15, 15, 60, 10, 10, 10, 65),
+    },
+  ];
+}
+
+function selectWithConstraint(scored, count, zone) {
+  // Greedy selection with odd/even balance constraints
+  const selected = [];
+  const used = new Set();
+
+  // Take top candidates first
+  for (let i = 0; i < scored.length && selected.length < count; i++) {
+    const candidate = scored[i];
+    if (used.has(candidate.num)) continue;
+
+    const currentOdds = selected.filter(x => x.odd).length;
+    const targetOdds = zone === 'front' ? 3 : 1;
+    const remaining = count - selected.length;
+
+    // Check if we can still reach target parity
+    const maxPossibleOdds = currentOdds + (candidate.odd ? 1 : 0) + (remaining - 1); // assume rest are odd
+    const minPossibleOdds = currentOdds + (candidate.odd ? 1 : 0); // assume rest are even
+
+    // Accept if it doesn't make target impossible
+    if (maxPossibleOdds >= targetOdds && minPossibleOdds <= targetOdds) {
+      selected.push(candidate);
+      used.add(candidate.num);
+    } else if (remaining === 1) {
+      // Last slot: take it anyway to fill
+      selected.push(candidate);
+      used.add(candidate.num);
+    }
+  }
+
+  return selected;
+}
+
+// ============================================================
+// RENDER PREDICTION — Three strategies
+// ============================================================
+function renderPrediction() {
+  const predictions = computeAllPredictions();
+
+  // Three strategy cards
+  const predNumsDiv = document.getElementById('predNumbers');
+  predNumsDiv.innerHTML = `<div class="pred-strategies">${predictions.map(p => `
+    <div class="pred-strategy-card ${p.cls}">
+      <div class="strat-name" style="color:${p.color}">${p.name}</div>
+      <div class="strat-desc">${p.desc}<br><span style="opacity:0.7">${p.detail}</span></div>
+      <div class="strat-nums">
+        <div class="balls">
+          ${p.front.map((n,i) => `<div class="ball front predicted" style="animation-delay:${i*0.15}s">${String(n).padStart(2,'0')}</div>`).join('')}
+        </div>
+        <div style="font-size:1.2em;color:var(--text-dim);">+</div>
+        <div class="balls">
+          ${p.back.map((n,i) => `<div class="ball back predicted" style="animation-delay:${(i+5)*0.15}s">${String(n).padStart(2,'0')}</div>`).join('')}
+        </div>
+      </div>
+      <div class="strat-info">
+        <span>和值 ${p.fSum}</span><span>奇偶 ${p.fOdd}:${5-p.fOdd}</span><span>风险 ${p.risk}</span>
+      </div>
+    </div>
+  `).join('')}</div>`;
+
+  // Reasoning section
+  const reasoningDiv = document.getElementById('reasoning');
+  let reasonsHTML = '<div class="section-title" style="border-left-color:var(--magenta);margin-top:8px;">预测思路分析</div>';
+
+  reasonsHTML += `
+    <div class="reason-item" style="border-left-color:var(--gold);">
+      <strong>三策略模型：</strong>
+      采用三种不同权重组合独立评分，分别侧重综合均衡、热号追踪、冷号回补三种思路。每策略独立排名选号，奇偶约束前区3:2、后区1:1。
+    </div>
+  `;
+
+  predictions.forEach((p, pi) => {
+    const icon = ['', '', ''];
+    reasonsHTML += `<div class="reason-item" style="border-left-color:${p.color};margin-top:8px;"><strong style="color:${p.color};">${p.name}</strong> — ${p.detail}</div>`;
+
+    reasonsHTML += `<div style="display:flex;gap:6px;flex-wrap:wrap;padding:4px 12px;">`;
+    p.frontScores.forEach(s => {
+      reasonsHTML += `
+        <div style="display:flex;align-items:center;gap:3px;background:rgba(255,255,255,0.03);padding:4px 8px;border-radius:6px;">
+          <span class="ball front small">${String(s.num).padStart(2,'0')}</span>
+          <span style="font-size:0.75em;color:var(--gold);">${s.score}</span>
+          ${s.reasons.slice(0,1).map(r => `<span style="font-size:0.65em;color:var(--text-dim);max-width:100px;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;">${r.text}</span>`).join('')}
+        </div>`;
+    });
+    p.backScores.forEach(s => {
+      reasonsHTML += `
+        <div style="display:flex;align-items:center;gap:3px;background:rgba(255,255,255,0.03);padding:4px 8px;border-radius:6px;">
+          <span class="ball back small">${String(s.num).padStart(2,'0')}</span>
+          <span style="font-size:0.75em;color:var(--gold);">${s.score}</span>
+          ${s.reasons.slice(0,1).map(r => `<span style="font-size:0.65em;color:var(--text-dim);max-width:100px;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;">${r.text}</span>`).join('')}
+        </div>`;
+    });
+    reasonsHTML += `</div>`;
+  });
+
+  // Top 10 front scores (balanced strategy)
+  const balanced = predictions[0];
+  reasonsHTML += `<div class="reason-item" style="border-left-color:var(--cyan);margin-top:8px;"><strong>均衡策略 — 前区评分 TOP 10：</strong></div>`;
+  reasonsHTML += '<div class="reason-item" style="display:flex;flex-wrap:wrap;gap:6px;">';
+  balanced.allFrontScores.slice(0, 10).forEach(s => {
+    reasonsHTML += `
+      <div style="display:flex;align-items:center;gap:4px;background:rgba(255,255,255,0.03);padding:4px 8px;border-radius:6px;">
+        <span class="ball front small">${String(s.num).padStart(2,'0')}</span>
+        <span style="font-size:0.8em;color:var(--gold);">${s.score}</span>
+      </div>`;
+  });
+  reasonsHTML += '</div>';
+
+  reasoningDiv.innerHTML = reasonsHTML;
+}
+
+// ============================================================
+// CHARTS
+// ============================================================
+let charts = {};
+
+function destroyCharts() {
+  Object.values(charts).forEach(c => c.destroy());
+  charts = {};
+}
+
+function renderCharts() {
+  destroyCharts();
+
+  const frontAnalysis = analyzeNumbers(DATA, 35, 'front');
+  const backAnalysis = analyzeNumbers(DATA, 12, 'back');
+
+  // Chart color config
+  const gridColor = 'rgba(255,255,255,0.06)';
+  const tickColor = '#8888aa';
+
+  // 1. Front Zone Frequency
+  const frontLabels = Array.from({length:35}, (_,i) => i+1);
+  const frontFreqData = Array.from({length:35}, (_,i) => frontAnalysis.freq[i+1]);
+
+  charts.frontFreq = new Chart(document.getElementById('chartFrontFreq'), {
+    type: 'bar',
+    data: {
+      labels: frontLabels,
+      datasets: [{
+        label: '出现次数',
+        data: frontFreqData,
+        backgroundColor: frontFreqData.map(v => {
+          if (v >= 9) return 'rgba(255,51,102,0.8)';
+          if (v >= 6) return 'rgba(255,215,0,0.7)';
+          return 'rgba(68,136,255,0.6)';
+        }),
+        borderColor: frontFreqData.map(v => {
+          if (v >= 9) return 'rgba(255,51,102,1)';
+          if (v >= 6) return 'rgba(255,215,0,0.9)';
+          return 'rgba(68,136,255,0.9)';
+        }),
+        borderWidth: 1,
+        borderRadius: 4,
+      }]
+    },
+    options: {
+      responsive: true,
+      plugins: {
+        legend: { labels: { color: tickColor, font: { size: 11 } } }
+      },
+      scales: {
+        x: { ticks: { color: tickColor, font: { size: 10 } }, grid: { color: gridColor } },
+        y: { ticks: { color: tickColor, font: { size: 10 } }, grid: { color: gridColor }, beginAtZero: true }
+      }
+    }
+  });
+
+  // 2. Back Zone Frequency
+  const backLabels = Array.from({length:12}, (_,i) => i+1);
+  const backFreqData = Array.from({length:12}, (_,i) => backAnalysis.freq[i+1]);
+
+  charts.backFreq = new Chart(document.getElementById('chartBackFreq'), {
+    type: 'bar',
+    data: {
+      labels: backLabels,
+      datasets: [{
+        label: '出现次数',
+        data: backFreqData,
+        backgroundColor: backFreqData.map(v => {
+          if (v >= 10) return 'rgba(255,51,102,0.8)';
+          if (v >= 7) return 'rgba(255,215,0,0.7)';
+          return 'rgba(68,136,255,0.6)';
+        }),
+        borderColor: backFreqData.map(v => {
+          if (v >= 10) return 'rgba(255,51,102,1)';
+          if (v >= 7) return 'rgba(255,215,0,0.9)';
+          return 'rgba(68,136,255,0.9)';
+        }),
+        borderWidth: 1,
+        borderRadius: 6,
+      }]
+    },
+    options: {
+      responsive: true,
+      plugins: {
+        legend: { labels: { color: tickColor, font: { size: 11 } } }
+      },
+      scales: {
+        x: { ticks: { color: tickColor, font: { size: 10 } }, grid: { color: gridColor } },
+        y: { ticks: { color: tickColor, font: { size: 10 } }, grid: { color: gridColor }, beginAtZero: true }
+      }
+    }
+  });
+
+  // 3. Front Zone Missing chart
+  const missingData = Array.from({length:35}, (_,i) => frontAnalysis.lastSeen[i+1]);
+
+  charts.frontMissing = new Chart(document.getElementById('chartFrontMissing'), {
+    type: 'bar',
+    data: {
+      labels: frontLabels,
+      datasets: [{
+        label: '遗漏期数',
+        data: missingData,
+        backgroundColor: missingData.map(v => {
+          if (v >= 15) return 'rgba(0,240,255,0.7)';
+          if (v >= 8) return 'rgba(255,215,0,0.6)';
+          return 'rgba(255,255,255,0.2)';
+        }),
+        borderColor: missingData.map(v => {
+          if (v >= 15) return 'rgba(0,240,255,1)';
+          if (v >= 8) return 'rgba(255,215,0,1)';
+          return 'rgba(255,255,255,0.3)';
+        }),
+        borderWidth: 1,
+        borderRadius: 4,
+      }]
+    },
+    options: {
+      responsive: true,
+      plugins: {
+        legend: { labels: { color: tickColor, font: { size: 11 } } }
+      },
+      scales: {
+        x: { ticks: { color: tickColor, font: { size: 10 } }, grid: { color: gridColor } },
+        y: { ticks: { color: tickColor, font: { size: 10 } }, grid: { color: gridColor }, beginAtZero: true }
+      }
+    }
+  });
+
+  // 4. Hot/Cold classification chart
+  const avgFreq = frontFreqData.reduce((a,b) => a+b, 0) / 35;
+  const hotColdLabels = frontLabels.map(String);
+  const hotColdColors = frontFreqData.map(v => {
+    if (v >= avgFreq * 1.3) return 'rgba(255,51,102,0.8)'; // Hot
+    if (v >= avgFreq * 0.7) return 'rgba(255,215,0,0.7)'; // Warm
+    return 'rgba(68,136,255,0.6)'; // Cold
+  });
+
+  charts.hotCold = new Chart(document.getElementById('chartHotCold'), {
+    type: 'bar',
+    data: {
+      labels: hotColdLabels,
+      datasets: [{
+        label: '热度指数',
+        data: frontFreqData.map(v => v - avgFreq),
+        backgroundColor: hotColdColors,
+        borderColor: hotColdColors.map(c => c.replace('0.8','1').replace('0.7','1').replace('0.6','1')),
+        borderWidth: 1,
+        borderRadius: 4,
+      }]
+    },
+    options: {
+      responsive: true,
+      plugins: {
+        legend: { display: false }
+      },
+      scales: {
+        x: { ticks: { color: tickColor, font: { size: 10 } }, grid: { color: gridColor } },
+        y: {
+          ticks: { color: tickColor, font: { size: 10 } },
+          grid: { color: gridColor },
+          title: { display: true, text: '偏离平均值', color: tickColor }
+        }
+      }
+    }
+  });
+}
+
+// ============================================================
+// STATS CARDS
+// ============================================================
+function renderStats() {
+  const frontAnalysis = analyzeNumbers(DATA, 35, 'front');
+  const backAnalysis = analyzeNumbers(DATA, 12, 'back');
+
+  // Most frequent front numbers
+  const frontFreq = frontAnalysis.freq.map((v,i) => ({num:i, count:v})).filter(x=>x.num>0);
+  frontFreq.sort((a,b) => b.count - a.count);
+  const hotFront = frontFreq.slice(0, 5).map(x => String(x.num).padStart(2,'0')).join(' ');
+
+  // Coldest front numbers
+  const coldFront = frontFreq.slice(-5).reverse().map(x => String(x.num).padStart(2,'0')).join(' ');
+
+  // Average sum
+  const sums = DATA.map(d => d.f.reduce((a,b) => a+b, 0));
+  const avgSum = Math.round(sums.reduce((a,b) => a+b, 0) / sums.length);
+
+  // Odd/Even ratio
+  let totalOdd = 0, totalEven = 0;
+  DATA.forEach(d => d.f.forEach(n => n % 2 ? totalOdd++ : totalEven++));
+
+  document.getElementById('statCards').innerHTML = `
+    <div class="stat-card">
+      <div class="value">${hotFront}</div>
+      <div class="stat-label">前区热号 TOP5</div>
+    </div>
+    <div class="stat-card">
+      <div class="value">${avgSum}</div>
+      <div class="stat-label">前区平均和值 (范围70-130)</div>
+    </div>
+    <div class="stat-card">
+      <div class="value">${totalOdd}:${totalEven}</div>
+      <div class="stat-label">前区奇偶比 (历史总)</div>
+    </div>
+  `;
+}
+
+// ============================================================
+// HISTORY TABLE & RECENT DRAWS
+// ============================================================
+function renderRecentDraws() {
+  const div = document.getElementById('recentDraws');
+  div.innerHTML = DATA.slice(0, 5).map((d, i) => {
+    const date = new Date(d.dt);
+    const dayName = DAY_NAMES[date.getDay()];
+    return `
+      <div class="recent-draw-row">
+        <span class="qihao">${d.qh}期</span>
+        <span class="date">${d.dt} 周${dayName}</span>
+        <div class="balls">
+          ${d.f.map(n => `<div class="ball front small">${String(n).padStart(2,'0')}</div>`).join('')}
+        </div>
+        <span style="color:var(--text-dim);margin:0 4px;">+</span>
+        <div class="balls">
+          ${d.b.map(n => `<div class="ball back small">${String(n).padStart(2,'0')}</div>`).join('')}
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+
+function renderHistoryTable() {
+  const tbody = document.getElementById('historyTable');
+  tbody.innerHTML = DATA.map(d => {
+    const date = new Date(d.dt);
+    const dayName = DAY_NAMES[date.getDay()];
+    const sum = d.f.reduce((a,b) => a+b, 0);
+    const oddCount = d.f.filter(n => n % 2).length;
+    const oe = `${oddCount}:${5-oddCount}`;
+    return `
+      <tr>
+        <td style="color:var(--cyan);font-weight:600;">${d.qh}</td>
+        <td>${d.dt}</td>
+        <td>周${dayName}</td>
+        ${d.f.map(n => `<td><span class="ball front small">${String(n).padStart(2,'0')}</span></td>`).join('')}
+        ${d.b.map(n => `<td><span class="ball back small">${String(n).padStart(2,'0')}</span></td>`).join('')}
+        <td style="font-weight:600;">${sum}</td>
+        <td>${oe}</td>
+      </tr>
+    `;
+  }).join('');
+}
+
+function scrollToTop() { window.scrollTo({top:0,behavior:'smooth'}); }
+
+// ============================================================
+// INIT
+// ============================================================
+function init() {
+  renderRecentDraws();
+  renderHistoryTable();
+  renderPrediction();
+  renderCharts();
+  renderStats();
+  updateCountdown();
+  setInterval(updateCountdown, 1000);
+}
+
+document.addEventListener('DOMContentLoaded', init);
+</script>
+
+</body>
+</html>
