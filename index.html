@@ -477,6 +477,67 @@
     box-shadow: 0 0 20px rgba(255,215,0,0.2);
   }
 
+  /* ===== Backtest ===== */
+  .ball.match {
+    box-shadow: 0 0 15px rgba(0,255,136,0.6), 0 4px 15px rgba(0,0,0,0.4);
+    border: 2px solid var(--green);
+    animation: pulse-match 1.5s ease-in-out infinite;
+  }
+  @keyframes pulse-match {
+    0%,100% { box-shadow: 0 0 15px rgba(0,255,136,0.6); }
+    50% { box-shadow: 0 0 30px rgba(0,255,136,0.9); }
+  }
+  td.hit-high { color: var(--green); font-weight: 700; }
+  td.hit-mid { color: var(--gold); font-weight: 600; }
+  td.hit-low { color: var(--text-dim); }
+  #backtestCard .grid-3 {
+    display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px;
+  }
+  #backtestCard .stat-card {
+    padding: 12px 8px;
+  }
+  #backtestCard .stat-card .value {
+    font-size: 1.3em;
+  }
+  @media (max-width: 900px) {
+    #backtestCard .grid-3 {
+      grid-template-columns: repeat(3, 1fr); gap: 6px;
+    }
+    #backtestCard .stat-card .value { font-size: 1em; }
+    #backtestCard .stat-card .stat-label { font-size: 0.65em; }
+    .strat-compare-card { padding: 8px 6px; }
+    .strat-compare-name { font-size: 0.75em; }
+    .strat-compare-row { gap: 2px; }
+    .sc-val { font-size: 0.85em; }
+    .sc-label { font-size: 0.55em; }
+  }
+
+  .strat-compare-card {
+    background: rgba(255,255,255,0.02);
+    border-radius: 10px; padding: 12px 10px;
+  }
+  .strat-compare-name {
+    font-family: 'SF Mono', 'Cascadia Code', 'Consolas', monospace;
+    font-size: 0.85em; font-weight: 700; text-align: center;
+    margin-bottom: 8px; letter-spacing: 1px;
+  }
+  .strat-compare-row {
+    display: flex; gap: 6px; justify-content: center;
+  }
+  .sc-item {
+    text-align: center; flex: 1;
+  }
+  .sc-val {
+    font-family: 'SF Mono', 'Cascadia Code', 'Consolas', monospace;
+    font-weight: 700; font-size: 1.1em;
+    background: linear-gradient(135deg, var(--cyan), var(--magenta));
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+  .sc-label {
+    display: block; font-size: 0.62em; color: var(--text-dim);
+  }
+
   /* Stat cards */
   .stat-card {
     text-align: center; padding: 20px;
@@ -582,6 +643,29 @@
     </div>
   </div>
 
+  <!-- Backtest results -->
+  <div class="card" id="backtestCard">
+    <div class="section-title" style="display:flex;justify-content:space-between;align-items:center;border-left-color:var(--green);">
+      <span>历史回测验证 — 均衡策略</span>
+      <span style="font-size:0.7em;color:var(--text-dim);">仅用更早期数据模拟预测</span>
+    </div>
+    <div class="grid-3" id="backtestStats" style="margin-bottom:16px;"></div>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>期号</th><th>日期</th><th>实际前区</th><th>实际后区</th>
+            <th style="color:var(--cyan);">均衡 前+后</th>
+            <th style="color:var(--gold);">热号 前+后</th>
+            <th style="color:var(--magenta);">冷号 前+后</th>
+            <th>训练期</th>
+          </tr>
+        </thead>
+        <tbody id="backtestTable"></tbody>
+      </table>
+    </div>
+  </div>
+
   <div class="disclaimer">
     ⚠ 本预测系统基于历史数据统计与概率分析，仅供娱乐参考。彩票开奖具有完全随机性，任何预测方法均无法保证中奖。<br>
     请理性购彩，量力而行。未成年人不得购买彩票。
@@ -593,6 +677,7 @@
 // DATA: Real historical draws from China Sports Lottery API
 // ============================================================
 const RAW_DATA = [
+  {qh:"26057",dt:"2026-05-25",f:[23,25,26,27,34],b:[4,10]},
   {qh:"26056",dt:"2026-05-23",f:[6,7,18,21,30],b:[1,5]},
   {qh:"26055",dt:"2026-05-20",f:[9,10,20,33,35],b:[4,11]},
   {qh:"26054",dt:"2026-05-18",f:[2,6,14,22,24],b:[8,11]},
@@ -641,10 +726,9 @@ const RAW_DATA = [
   {qh:"26011",dt:"2026-01-26",f:[14,21,23,29,33],b:[2,10]},
   {qh:"26010",dt:"2026-01-24",f:[2,3,13,18,26],b:[2,9]},
   {qh:"26009",dt:"2026-01-21",f:[5,12,13,14,33],b:[5,8]},
-  {qh:"26008",dt:"2026-01-19",f:[3,6,17,21,33],b:[5,11]},
-  {qh:"26007",dt:"2026-01-17",f:[1,3,13,20,26],b:[3,10]}
+  {qh:"26008",dt:"2026-01-19",f:[3,6,17,21,33],b:[5,11]}
 ];
-const DATA = RAW_DATA;
+let DATA = RAW_DATA;
 
 // ============================================================
 // SCHEDULE: 大乐透 Mon/Wed/Sat draw schedule
@@ -1205,20 +1289,61 @@ function renderStats() {
 // ============================================================
 function renderRecentDraws() {
   const div = document.getElementById('recentDraws');
+  const stratNames = ['均衡策略', '热号追击', '冷号回补'];
+  const stratColors = ['var(--cyan)', 'var(--gold)', 'var(--magenta)'];
+
   div.innerHTML = DATA.slice(0, 5).map((d, i) => {
     const date = new Date(d.dt);
     const dayName = DAY_NAMES[date.getDay()];
+
+    // Run all 3 strategies using only older draws
+    const trainingData = DATA.slice(i + 1);
+    const saved = DATA;
+    DATA = trainingData;
+    const predictions = computeAllPredictions();
+    DATA = saved;
+
+    const fMatchSet = new Set(d.f);
+    const bMatchSet = new Set(d.b);
+
     return `
-      <div class="recent-draw-row">
-        <span class="qihao">${d.qh}期</span>
-        <span class="date">${d.dt} 周${dayName}</span>
-        <div class="balls">
-          ${d.f.map(n => `<div class="ball front small">${String(n).padStart(2,'0')}</div>`).join('')}
+      <div class="recent-draw-row" style="flex-wrap:wrap;padding:12px 14px;">
+        <div style="display:flex;align-items:center;gap:8px;width:100%;margin-bottom:6px;">
+          <span class="qihao">${d.qh}期</span>
+          <span class="date">${d.dt} 周${dayName}</span>
+          <span style="color:var(--text-dim);font-size:0.7em;">实际</span>
+          <div class="balls">
+            ${d.f.map(n => `<span class="ball front small">${String(n).padStart(2,'0')}</span>`).join('')}
+          </div>
+          <span style="color:var(--text-dim);">+</span>
+          <div class="balls">
+            ${d.b.map(n => `<span class="ball back small">${String(n).padStart(2,'0')}</span>`).join('')}
+          </div>
         </div>
-        <span style="color:var(--text-dim);margin:0 4px;">+</span>
-        <div class="balls">
-          ${d.b.map(n => `<div class="ball back small">${String(n).padStart(2,'0')}</div>`).join('')}
-        </div>
+        ${predictions.map((pred, si) => {
+          const fHits = pred.front.filter(n => fMatchSet.has(n)).length;
+          const bHits = pred.back.filter(n => bMatchSet.has(n)).length;
+          const totalHits = fHits + bHits;
+          return `
+            <div style="display:flex;align-items:center;gap:6px;width:100%;padding:2px 0 2px 8px;border-left:2px solid ${stratColors[si]};margin-left:4px;font-size:0.82em;">
+              <span style="color:${stratColors[si]};font-weight:600;min-width:48px;font-size:0.8em;">${stratNames[si]}</span>
+              <div class="balls">
+                ${pred.front.map(n => {
+                  const hit = fMatchSet.has(n);
+                  return `<span class="ball front small${hit ? ' match' : ''}" style="${hit ? '' : 'opacity:0.45;'}">${String(n).padStart(2,'0')}</span>`;
+                }).join('')}
+              </div>
+              <span style="color:var(--text-dim);">+</span>
+              <div class="balls">
+                ${pred.back.map(n => {
+                  const hit = bMatchSet.has(n);
+                  return `<span class="ball back small${hit ? ' match' : ''}" style="${hit ? '' : 'opacity:0.45;'}">${String(n).padStart(2,'0')}</span>`;
+                }).join('')}
+              </div>
+              <span style="font-weight:600;font-size:0.82em;margin-left:2px;color:${totalHits >= 2 ? 'var(--green)' : totalHits >= 1 ? 'var(--gold)' : 'var(--text-dim)'};">${totalHits > 0 ? '中'+totalHits : '-'}</span>
+            </div>
+          `;
+        }).join('')}
       </div>
     `;
   }).join('');
@@ -1249,6 +1374,167 @@ function renderHistoryTable() {
 function scrollToTop() { window.scrollTo({top:0,behavior:'smooth'}); }
 
 // ============================================================
+// BACKTESTING: Historical validation (all 3 strategies)
+// ============================================================
+function runBacktest() {
+  const results = [];
+  const MIN_TRAINING = 20;
+  const NUM_TEST = Math.min(DATA.length - MIN_TRAINING, 30);
+
+  for (let testIdx = 0; testIdx < NUM_TEST; testIdx++) {
+    const testDraw = DATA[testIdx];
+    const trainingData = DATA.slice(testIdx + 1);
+
+    const saved = DATA;
+    DATA = trainingData;
+
+    const predictions = computeAllPredictions();
+
+    DATA = saved;
+
+    const frontSet = new Set(testDraw.f);
+    const backSet = new Set(testDraw.b);
+
+    const strategies = predictions.map(p => {
+      const frontMatch = p.front.filter(n => frontSet.has(n)).length;
+      const backMatch = p.back.filter(n => backSet.has(n)).length;
+      return {
+        name: p.name,
+        predFront: p.front.slice(),
+        predBack: p.back.slice(),
+        frontMatch,
+        backMatch,
+        totalMatch: frontMatch + backMatch,
+      };
+    });
+
+    results.push({
+      qh: testDraw.qh,
+      dt: testDraw.dt,
+      actualFront: testDraw.f.slice(),
+      actualBack: testDraw.b.slice(),
+      strategies,
+      trainingSize: trainingData.length,
+    });
+  }
+
+  return results;
+}
+
+function computeBacktestStats(results, strategyIdx) {
+  const n = results.length;
+  const matches = results.map(r => r.strategies[strategyIdx]);
+  const fMatches = matches.map(m => m.frontMatch);
+  const bMatches = matches.map(m => m.backMatch);
+  const tMatches = matches.map(m => m.totalMatch);
+
+  const avgFront = fMatches.reduce((a, b) => a + b, 0) / n;
+  const avgBack = bMatches.reduce((a, b) => a + b, 0) / n;
+  const avgTotal = tMatches.reduce((a, b) => a + b, 0) / n;
+
+  const drawsWithFrontHit = results.filter(r => r.strategies[strategyIdx].frontMatch > 0).length;
+  const drawsWithBackHit = results.filter(r => r.strategies[strategyIdx].backMatch > 0).length;
+  const drawsWithAnyHit = results.filter(r => r.strategies[strategyIdx].totalMatch > 0).length;
+
+  const best = results.reduce((a, b) =>
+    a.strategies[strategyIdx].totalMatch >= b.strategies[strategyIdx].totalMatch ? a : b
+  );
+
+  return {
+    name: results[0].strategies[strategyIdx].name,
+    totalTests: n,
+    avgFront: +avgFront.toFixed(2),
+    avgBack: +avgBack.toFixed(2),
+    avgTotal: +avgTotal.toFixed(2),
+    drawsWithFrontHit,
+    drawsWithBackHit,
+    drawsWithAnyHit,
+    frontHitRate: +(drawsWithFrontHit / n * 100).toFixed(1),
+    backHitRate: +(drawsWithBackHit / n * 100).toFixed(1),
+    anyHitRate: +(drawsWithAnyHit / n * 100).toFixed(1),
+    bestResult: best,
+  };
+}
+
+function renderBacktest() {
+  const results = runBacktest();
+
+  // Stats for all 3 strategies
+  const allStats = [0, 1, 2].map(i => computeBacktestStats(results, i));
+  const colors = ['var(--cyan)', 'var(--gold)', 'var(--magenta)'];
+  const names = ['均衡策略', '热号追击', '冷号回补'];
+  const icons = ['', '', ''];
+
+  // Comparison stats cards
+  const statsDiv = document.getElementById('backtestStats');
+  statsDiv.innerHTML = `
+    <div class="stat-card" style="grid-column:1/-1;text-align:left;padding:12px 16px;">
+      <span class="stat-label">回测总期数: <strong style="color:var(--gold);">${allStats[0].totalTests}</strong> 期 &nbsp;|&nbsp; 仅用更早期数据训练，最少20期</span>
+    </div>
+    ${allStats.map((s, i) => `
+      <div class="strat-compare-card" style="border-top:2px solid ${colors[i]};">
+        <div class="strat-compare-name" style="color:${colors[i]};">${names[i]}</div>
+        <div class="strat-compare-row">
+          <div class="sc-item">
+            <span class="sc-val">${s.avgFront}</span>
+            <span class="sc-label">均前区中 /5</span>
+          </div>
+          <div class="sc-item">
+            <span class="sc-val">${s.avgBack}</span>
+            <span class="sc-label">均后区中 /2</span>
+          </div>
+          <div class="sc-item">
+            <span class="sc-val">${s.avgTotal}</span>
+            <span class="sc-label">均总命中</span>
+          </div>
+        </div>
+        <div class="strat-compare-row" style="margin-top:4px;">
+          <div class="sc-item">
+            <span class="sc-val" style="font-size:0.85em;">${s.frontHitRate}%</span>
+            <span class="sc-label">前区≥1率</span>
+          </div>
+          <div class="sc-item">
+            <span class="sc-val" style="font-size:0.85em;">${s.backHitRate}%</span>
+            <span class="sc-label">后区≥1率</span>
+          </div>
+          <div class="sc-item">
+            <span class="sc-val" style="font-size:0.85em;">${s.anyHitRate}%</span>
+            <span class="sc-label">总体≥1率</span>
+          </div>
+        </div>
+      </div>
+    `).join('')}
+  `;
+
+  // Backtest table: match counts for all 3 strategies
+  const tbody = document.getElementById('backtestTable');
+  tbody.innerHTML = results.map(r => {
+    const s = r.strategies; // [balanced, hot, cold]
+    return `
+      <tr>
+        <td style="color:var(--cyan);font-weight:600;">${r.qh}</td>
+        <td>${r.dt}</td>
+        <td><div class="balls" style="justify-content:center;">
+          ${r.actualFront.map(n => `<span class="ball front small">${String(n).padStart(2,'0')}</span>`).join('')}
+        </div></td>
+        <td><div class="balls" style="justify-content:center;">
+          ${r.actualBack.map(n => `<span class="ball back small">${String(n).padStart(2,'0')}</span>`).join('')}
+        </div></td>
+        ${s.map((st, si) => {
+          const t = st.totalMatch;
+          const cls = t >= 3 ? 'high' : t >= 1 ? 'mid' : 'low';
+          return `<td class="hit-${cls}" style="border-left:1px solid rgba(255,255,255,0.06);">
+            <span title="前区${st.frontMatch} 后区${st.backMatch}">${st.frontMatch}+${st.backMatch}</span>
+            <span style="font-weight:700;margin-left:2px;">=${t}</span>
+          </td>`;
+        }).join('')}
+        <td style="color:var(--text-dim);font-size:0.8em;">${r.trainingSize}</td>
+      </tr>
+    `;
+  }).join('');
+}
+
+// ============================================================
 // INIT
 // ============================================================
 function init() {
@@ -1257,6 +1543,7 @@ function init() {
   renderPrediction();
   renderCharts();
   renderStats();
+  renderBacktest();
   updateCountdown();
   setInterval(updateCountdown, 1000);
 }

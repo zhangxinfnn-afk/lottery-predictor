@@ -9,7 +9,7 @@ Usage:
   python3 fetch_data.py --output data.json  # Write to JSON file
 
 Schedule: run this on Mon/Wed/Sat mornings to get fresh predictions.
-  Cron example: 0 8 * * 1,3,6 cd /path && python3 fetch_data.py --update
+  Cron example: 0 8 * * 1,3,6 /usr/bin/python3 /Users/a58/lottery-predictor/fetch_data.py --update >> /Users/a58/lottery-predictor/cron.log 2>&1
 """
 
 import json
@@ -18,6 +18,8 @@ import sys
 import re
 import os
 import ssl
+import gzip
+import io
 
 API_URL = "https://webapi.sporttery.cn/gateway/lottery/getHistoryPageListV1.qry"
 GAME_NO = "85"
@@ -45,10 +47,16 @@ def fetch_page(page_no, page_size=50):
     # Try with SSL context that doesn't verify (some CDN issues)
     ctx = ssl.create_default_context()
 
+    def decode_response(response_bytes):
+        """Handle gzip or plain response."""
+        if response_bytes[:2] == b'\x1f\x8b':
+            return gzip.decompress(response_bytes).decode("utf-8")
+        return response_bytes.decode("utf-8")
+
     try:
         req = urllib.request.Request(url, headers=headers)
         with urllib.request.urlopen(req, timeout=15, context=ctx) as resp:
-            raw = resp.read().decode("utf-8")
+            raw = decode_response(resp.read())
             data = json.loads(raw)
     except Exception as e:
         print(f"  [warn] Primary fetch failed: {e}", file=sys.stderr)
@@ -57,7 +65,7 @@ def fetch_page(page_no, page_size=50):
             ctx = ssl._create_unverified_context()
             req = urllib.request.Request(url, headers=headers)
             with urllib.request.urlopen(req, timeout=15, context=ctx) as resp:
-                raw = resp.read().decode("utf-8")
+                raw = decode_response(resp.read())
                 data = json.loads(raw)
         except Exception as e2:
             print(f"  [error] Alternate fetch also failed: {e2}", file=sys.stderr)
