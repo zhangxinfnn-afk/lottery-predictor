@@ -779,7 +779,8 @@ function updateCountdown() {
     document.getElementById('predictionPanel').style.boxShadow = '0 0 40px rgba(255,215,0,0.1)';
   } else {
     const dayName = DAY_NAMES[nextDraw.getDay()];
-    badge.textContent = `下周${dayName}`;
+    const weekPrefix = nextDraw.getDay() > now.getDay() ? '本周' : '下周';
+    badge.textContent = weekPrefix + dayName;
     badge.className = 'draw-day-badge waiting';
   }
 }
