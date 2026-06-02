@@ -154,6 +154,9 @@
   .ball.small {
     width: 32px; height: 32px; font-size: 0.85em;
   }
+  .ball.xs {
+    width: 22px; height: 22px; font-size: 0.7em;
+  }
   .ball.predicted {
     animation: glow-ball 1.5s ease-in-out infinite;
     box-shadow: 0 0 16px rgba(184,134,11,0.4), 0 4px 12px rgba(0,0,0,0.2);
@@ -642,9 +645,9 @@
         <thead>
           <tr>
             <th>期号</th><th>日期</th><th>实际前区</th><th>实际后区</th>
-            <th style="color:var(--cyan);">均衡 前+后</th>
-            <th style="color:var(--gold);">热号 前+后</th>
-            <th style="color:var(--magenta);">冷号 前+后</th>
+            <th style="color:var(--cyan);">均衡 预测+命中</th>
+            <th style="color:var(--gold);">热号 预测+命中</th>
+            <th style="color:var(--magenta);">冷号 预测+命中</th>
             <th>训练期</th>
           </tr>
         </thead>
@@ -1477,10 +1480,12 @@ function renderBacktest() {
     `).join('')}
   `;
 
-  // Backtest table: match counts for all 3 strategies
+  // Backtest table: predicted numbers + match counts
   const tbody = document.getElementById('backtestTable');
   tbody.innerHTML = results.map(r => {
-    const s = r.strategies; // [balanced, hot, cold]
+    const fMatchSet = new Set(r.actualFront);
+    const bMatchSet = new Set(r.actualBack);
+    const s = r.strategies;
     return `
       <tr>
         <td style="color:var(--cyan);font-weight:600;">${r.qh}</td>
@@ -1492,11 +1497,21 @@ function renderBacktest() {
           ${r.actualBack.map(n => `<span class="ball back small">${String(n).padStart(2,'0')}</span>`).join('')}
         </div></td>
         ${s.map((st, si) => {
-          const t = st.totalMatch;
-          const cls = t >= 3 ? 'high' : t >= 1 ? 'mid' : 'low';
-          return `<td class="hit-${cls}" style="border-left:1px solid rgba(0,0,0,0.06);">
-            <span title="前区${st.frontMatch} 后区${st.backMatch}">${st.frontMatch}+${st.backMatch}</span>
-            <span style="font-weight:700;margin-left:2px;">=${t}</span>
+          const totalHits = st.totalMatch;
+          const hitCls = totalHits >= 3 ? 'high' : totalHits >= 1 ? 'mid' : 'low';
+          return `<td class="hit-${hitCls}" style="border-left:1px solid rgba(0,0,0,0.06);padding:4px 6px;">
+            <div class="balls" style="justify-content:center;gap:2px;">
+              ${st.predFront.map(n => {
+                const hit = fMatchSet.has(n);
+                return `<span class="ball front xs${hit ? ' match' : ''}" style="${hit ? '' : 'opacity:0.35;'}">${String(n).padStart(2,'0')}</span>`;
+              }).join('')}
+              <span style="color:var(--text-dim);margin:0 1px;font-size:0.65em;">+</span>
+              ${st.predBack.map(n => {
+                const hit = bMatchSet.has(n);
+                return `<span class="ball back xs${hit ? ' match' : ''}" style="${hit ? '' : 'opacity:0.35;'}">${String(n).padStart(2,'0')}</span>`;
+              }).join('')}
+            </div>
+            <div style="font-size:0.7em;margin-top:2px;font-weight:600;">中${st.frontMatch}+${st.backMatch}=${totalHits}</div>
           </td>`;
         }).join('')}
         <td style="color:var(--text-dim);font-size:0.8em;">${r.trainingSize}</td>
