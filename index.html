@@ -15,52 +15,29 @@
 <style>
 
   :root {
-    --bg: #0a0a1a;
-    --card-bg: rgba(16, 16, 40, 0.85);
-    --cyan: #00f0ff;
-    --magenta: #ff00aa;
-    --gold: #ffd700;
-    --green: #00ff88;
-    --red: #ff3366;
-    --blue: #4488ff;
-    --text: #e0e0f0;
-    --text-dim: #8888aa;
-    --border: rgba(255,255,255,0.08);
+    --bg: #f0f4f8;
+    --card-bg: #ffffff;
+    --cyan: #0891b2;
+    --magenta: #db2777;
+    --gold: #b8860b;
+    --green: #059669;
+    --red: #e11d48;
+    --blue: #3b82f6;
+    --text: #1e293b;
+    --text-dim: #64748b;
+    --border: rgba(0,0,0,0.08);
+    --shadow: 0 2px 12px rgba(0,0,0,0.06);
   }
 
   * { margin: 0; padding: 0; box-sizing: border-box; }
 
   body {
-    background: var(--bg);
+    background: linear-gradient(180deg, #eef2f7 0%, #f0f4f8 40%, #f5f7fa 100%);
     color: var(--text);
     font-family: 'PingFang SC', 'Microsoft YaHei', sans-serif;
     min-height: 100vh;
     overflow-x: hidden;
   }
-
-  /* Animated background */
-  .bg-stars {
-    position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-    pointer-events: none; z-index: 0;
-    background:
-      radial-gradient(1px 1px at 10% 20%, rgba(255,255,255,0.4), transparent),
-      radial-gradient(1px 1px at 25% 45%, rgba(255,255,255,0.3), transparent),
-      radial-gradient(1.5px 1.5px at 40% 15%, rgba(255,255,255,0.5), transparent),
-      radial-gradient(1px 1px at 55% 65%, rgba(255,255,255,0.3), transparent),
-      radial-gradient(1.5px 1.5px at 70% 35%, rgba(255,255,255,0.4), transparent),
-      radial-gradient(1px 1px at 85% 55%, rgba(255,255,255,0.3), transparent),
-      radial-gradient(1px 1px at 15% 75%, rgba(255,255,255,0.35), transparent),
-      radial-gradient(1.5px 1.5px at 60% 85%, rgba(255,255,255,0.4), transparent),
-      radial-gradient(1px 1px at 92% 10%, rgba(255,255,255,0.3), transparent),
-      radial-gradient(1px 1px at 33% 90%, rgba(255,255,255,0.25), transparent);
-  }
-  .bg-glow {
-    position: fixed; pointer-events: none; z-index: 0;
-    width: 600px; height: 600px; border-radius: 50%;
-    filter: blur(150px); opacity: 0.12;
-  }
-  .bg-glow.n1 { top: -200px; left: -100px; background: var(--cyan); }
-  .bg-glow.n2 { bottom: -200px; right: -100px; background: var(--magenta); }
 
   /* Layout */
   .app {
@@ -102,7 +79,7 @@
     background: var(--card-bg);
     border: 1px solid var(--border);
     border-radius: 16px;
-    backdrop-filter: blur(20px);
+    box-shadow: var(--shadow);
   }
   .countdown-bar .next-draw {
     font-weight: 700; font-size: 1.05em;
@@ -111,7 +88,7 @@
   .countdown-bar .countdown {
     font-family: 'SF Mono', 'Cascadia Code', 'Consolas', monospace;
     font-size: 1.6em; font-weight: 700;
-    color: var(--gold);
+    color: #b8860b;
     min-width: 180px; text-align: center;
   }
   .countdown-bar .draw-day-badge {
@@ -119,13 +96,13 @@
     font-size: 0.85em; font-weight: 600;
   }
   .draw-day-badge.today {
-    background: rgba(0,255,136,0.15); color: var(--green);
-    border: 1px solid rgba(0,255,136,0.3);
+    background: rgba(5,150,105,0.1); color: var(--green);
+    border: 1px solid rgba(5,150,105,0.3);
     animation: pulse-badge 2s infinite;
   }
   .draw-day-badge.waiting {
-    background: rgba(255,255,255,0.05); color: var(--text-dim);
-    border: 1px solid rgba(255,255,255,0.1);
+    background: rgba(0,0,0,0.04); color: var(--text-dim);
+    border: 1px solid rgba(0,0,0,0.1);
   }
   @keyframes pulse-badge {
     0%,100% { opacity: 1; }
@@ -150,10 +127,10 @@
     border-radius: 16px;
     padding: 24px;
     margin-bottom: 24px;
-    backdrop-filter: blur(20px);
-    transition: border-color 0.3s;
+    box-shadow: var(--shadow);
+    transition: border-color 0.3s, box-shadow 0.3s;
   }
-  .card:hover { border-color: rgba(255,255,255,0.18); }
+  .card:hover { border-color: rgba(0,0,0,0.15); }
 
   /* Grid */
   .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
@@ -179,57 +156,72 @@
   }
   .ball.predicted {
     animation: glow-ball 1.5s ease-in-out infinite;
-    box-shadow: 0 0 20px rgba(255,215,0,0.6), 0 4px 15px rgba(0,0,0,0.4);
+    box-shadow: 0 0 16px rgba(184,134,11,0.4), 0 4px 12px rgba(0,0,0,0.2);
   }
   @keyframes glow-ball {
-    0%,100% { box-shadow: 0 0 20px rgba(255,215,0,0.6), 0 4px 15px rgba(0,0,0,0.4); }
-    50% { box-shadow: 0 0 35px rgba(255,215,0,0.9), 0 4px 15px rgba(0,0,0,0.4); }
+    0%,100% { box-shadow: 0 0 16px rgba(184,134,11,0.4), 0 4px 12px rgba(0,0,0,0.2); }
+    50% { box-shadow: 0 0 28px rgba(184,134,11,0.7), 0 4px 12px rgba(0,0,0,0.2); }
   }
 
-  /* Recent draws */
-  .recent-draws { display: flex; flex-direction: column; gap: 8px; }
+  /* Recent draws — compact single-line rows */
+  .recent-draws { display: flex; flex-direction: column; gap: 2px; }
   .recent-draw-row {
-    display: flex; align-items: center; gap: 12px;
-    padding: 10px 16px; border-radius: 10px;
-    background: rgba(255,255,255,0.02);
-    transition: background 0.2s;
+    display: flex; align-items: center; gap: 10px;
+    padding: 7px 14px; border-radius: 6px;
+    background: transparent;
+    transition: background 0.15s;
   }
-  .recent-draw-row:hover { background: rgba(255,255,255,0.05); }
-  .recent-draw-row .qihao {
-    font-weight: 600; color: var(--cyan);
-    min-width: 70px; font-size: 0.9em;
+  .recent-draw-row:hover { background: #f0f4f8; }
+  .recent-draw-row .rd-qihao {
+    font-family: 'SF Mono', 'Cascadia Code', 'Consolas', monospace;
+    font-weight: 700; font-size: 0.85em; color: var(--cyan);
+    min-width: 62px; white-space: nowrap;
   }
-  .recent-draw-row .date {
-    color: var(--text-dim); font-size: 0.8em; min-width: 85px;
+  .recent-draw-row .rd-date {
+    font-size: 0.72em; color: var(--text-dim);
+    min-width: 72px; white-space: nowrap;
   }
+  .recent-draw-row .rd-divider {
+    width: 1px; height: 20px; background: rgba(0,0,0,0.08);
+  }
+  .recent-draw-row .rd-strat-badge {
+    display: inline-flex; align-items: center; gap: 3px;
+    font-size: 0.68em; font-weight: 600;
+    padding: 2px 7px; border-radius: 10px;
+    white-space: nowrap;
+  }
+  .rd-strat-badge.s1 { background: rgba(8,145,178,0.07); color: #0891b2; }
+  .rd-strat-badge.s2 { background: rgba(184,134,11,0.07); color: #b8860b; }
+  .rd-strat-badge.s3 { background: rgba(219,39,119,0.07); color: #db2777; }
+  .rd-strat-badge .dot { font-size: 0.85em; }
 
   /* Table */
   .table-wrap {
     max-height: 600px; overflow-y: auto;
-    scrollbar-width: thin; scrollbar-color: rgba(255,255,255,0.15) transparent;
+    scrollbar-width: thin; scrollbar-color: rgba(0,0,0,0.15) transparent;
   }
   .table-wrap::-webkit-scrollbar { width: 6px; }
   .table-wrap::-webkit-scrollbar-track { background: transparent; }
   .table-wrap::-webkit-scrollbar-thumb {
-    background: rgba(255,255,255,0.15); border-radius: 3px;
+    background: rgba(0,0,0,0.15); border-radius: 3px;
   }
   table {
     width: 100%; border-collapse: collapse; font-size: 0.9em;
   }
   thead { position: sticky; top: 0; z-index: 2; }
   thead th {
-    background: rgba(10,10,26,0.95);
+    background: #f8fafc;
     padding: 12px 10px; text-align: center;
-    color: var(--cyan); font-weight: 600;
-    border-bottom: 2px solid rgba(0,240,255,0.3);
+    color: #0891b2; font-weight: 600;
+    border-bottom: 2px solid rgba(8,145,178,0.3);
     font-size: 0.85em; letter-spacing: 1px;
   }
   tbody td {
     padding: 8px 6px; text-align: center;
-    border-bottom: 1px solid rgba(255,255,255,0.04);
+    border-bottom: 1px solid rgba(0,0,0,0.06);
   }
   tbody tr { transition: background 0.2s; }
-  tbody tr:hover { background: rgba(255,255,255,0.04); }
+  tbody tr:hover { background: rgba(0,0,0,0.03); }
 
   /* Charts area */
   .chart-container {
@@ -244,7 +236,7 @@
   .prediction-panel::before {
     content: ''; position: absolute; top: -50%; left: -50%;
     width: 200%; height: 200%;
-    background: conic-gradient(from 0deg, transparent, rgba(255,215,0,0.04), transparent, rgba(0,240,255,0.04), transparent);
+    background: conic-gradient(from 0deg, transparent, rgba(184,134,11,0.04), transparent, rgba(8,145,178,0.04), transparent);
     animation: rotate-glow 8s linear infinite;
   }
   @keyframes rotate-glow { to { transform: rotate(360deg); } }
@@ -257,7 +249,7 @@
     margin-bottom: 20px;
   }
   .pred-strategy-card {
-    background: rgba(255,255,255,0.02);
+    background: #fafbfc;
     border: 1px solid var(--border);
     border-radius: 14px;
     padding: 20px 16px;
@@ -266,9 +258,9 @@
     position: relative; overflow: hidden;
   }
   .pred-strategy-card:hover {
-    border-color: rgba(255,255,255,0.18);
+    border-color: rgba(0,0,0,0.15);
     transform: translateY(-2px);
-    box-shadow: 0 8px 30px rgba(0,0,0,0.3);
+    box-shadow: 0 8px 30px rgba(0,0,0,0.1);
   }
   .pred-strategy-card::after {
     content: ''; position: absolute; bottom: 0; left: 0; right: 0; height: 3px;
@@ -300,7 +292,7 @@
     display: flex; gap: 12px; justify-content: center;
   }
   .pred-strategy-card .strat-info span {
-    background: rgba(255,255,255,0.04);
+    background: rgba(0,0,0,0.04);
     padding: 2px 10px; border-radius: 10px;
   }
 
@@ -323,7 +315,7 @@
   .reason-item {
     padding: 12px 16px; margin-bottom: 8px;
     border-radius: 8px; font-size: 0.9em; line-height: 1.6;
-    background: rgba(255,255,255,0.03);
+    background: #f8f9fb;
     border-left: 3px solid var(--cyan);
   }
   .reason-item .tag {
@@ -331,10 +323,10 @@
     padding: 2px 10px; border-radius: 10px;
     font-size: 0.8em; font-weight: 600; margin-right: 8px;
   }
-  .tag.hot { background: rgba(255,51,102,0.2); color: var(--red); }
-  .tag.cold { background: rgba(68,136,255,0.2); color: var(--blue); }
-  .tag.trend { background: rgba(0,240,255,0.15); color: var(--cyan); }
-  .tag.pattern { background: rgba(255,215,0,0.15); color: var(--gold); }
+  .tag.hot { background: rgba(225,29,72,0.12); color: var(--red); }
+  .tag.cold { background: rgba(59,130,246,0.12); color: var(--blue); }
+  .tag.trend { background: rgba(8,145,178,0.12); color: var(--cyan); }
+  .tag.pattern { background: rgba(184,134,11,0.12); color: #b8860b; }
 
   /* Score indicators */
   .score-bar-wrap {
@@ -346,7 +338,7 @@
   }
   .score-bar {
     flex: 1; height: 6px; border-radius: 3px;
-    background: rgba(255,255,255,0.08);
+    background: rgba(0,0,0,0.08);
     overflow: hidden;
   }
   .score-bar .fill {
@@ -398,13 +390,12 @@
     .ball { width: 38px; height: 38px; font-size: 1em; }
     .ball.small { width: 28px; height: 28px; font-size: 0.8em; }
 
-    /* Recent draws: horizontal scroll */
-    .recent-draws { gap: 4px; }
+    /* Recent draws: allow wrap on mobile */
     .recent-draw-row {
-      padding: 8px 10px; gap: 6px; flex-wrap: wrap;
+      padding: 6px 10px; gap: 6px; flex-wrap: wrap;
     }
-    .recent-draw-row .qihao { min-width: 55px; font-size: 0.8em; }
-    .recent-draw-row .date { min-width: 70px; font-size: 0.7em; }
+    .recent-draw-row .rd-qihao { min-width: 50px; font-size: 0.78em; }
+    .recent-draw-row .rd-date { min-width: 60px; font-size: 0.68em; }
 
     /* Strategy cards on mobile */
     .pred-strategy-card { padding: 14px 10px; }
@@ -459,33 +450,33 @@
   /* Refresh button */
   .btn {
     padding: 10px 24px; border-radius: 8px; border: 1px solid var(--cyan);
-    background: rgba(0,240,255,0.08); color: var(--cyan);
+    background: rgba(8,145,178,0.08); color: var(--cyan);
     font-weight: 600; cursor: pointer; font-size: 0.9em;
     transition: all 0.3s;
     letter-spacing: 1px;
   }
   .btn:hover {
-    background: rgba(0,240,255,0.18);
-    box-shadow: 0 0 20px rgba(0,240,255,0.2);
+    background: rgba(8,145,178,0.15);
+    box-shadow: 0 0 16px rgba(8,145,178,0.15);
   }
   .btn.gold {
-    border-color: var(--gold); color: var(--gold);
-    background: rgba(255,215,0,0.08);
+    border-color: #b8860b; color: #b8860b;
+    background: rgba(184,134,11,0.08);
   }
   .btn.gold:hover {
-    background: rgba(255,215,0,0.18);
-    box-shadow: 0 0 20px rgba(255,215,0,0.2);
+    background: rgba(184,134,11,0.15);
+    box-shadow: 0 0 16px rgba(184,134,11,0.15);
   }
 
   /* ===== Backtest ===== */
   .ball.match {
-    box-shadow: 0 0 15px rgba(0,255,136,0.6), 0 4px 15px rgba(0,0,0,0.4);
+    box-shadow: 0 0 12px rgba(5,150,105,0.5), 0 4px 12px rgba(0,0,0,0.2);
     border: 2px solid var(--green);
     animation: pulse-match 1.5s ease-in-out infinite;
   }
   @keyframes pulse-match {
-    0%,100% { box-shadow: 0 0 15px rgba(0,255,136,0.6); }
-    50% { box-shadow: 0 0 30px rgba(0,255,136,0.9); }
+    0%,100% { box-shadow: 0 0 12px rgba(5,150,105,0.5); }
+    50% { box-shadow: 0 0 24px rgba(5,150,105,0.8); }
   }
   td.hit-high { color: var(--green); font-weight: 700; }
   td.hit-mid { color: var(--gold); font-weight: 600; }
@@ -513,7 +504,7 @@
   }
 
   .strat-compare-card {
-    background: rgba(255,255,255,0.02);
+    background: #fafbfc;
     border-radius: 10px; padding: 12px 10px;
   }
   .strat-compare-name {
@@ -541,7 +532,7 @@
   /* Stat cards */
   .stat-card {
     text-align: center; padding: 20px;
-    background: rgba(255,255,255,0.02);
+    background: #fafbfc;
     border-radius: 12px; border: 1px solid var(--border);
   }
   .stat-card .value {
@@ -558,10 +549,6 @@
 </head>
 <body>
 
-<div class="bg-stars"></div>
-<div class="bg-glow n1"></div>
-<div class="bg-glow n2"></div>
-
 <div class="app">
   <!-- Header -->
   <div class="header">
@@ -576,12 +563,6 @@
     <span class="draw-day-badge waiting" id="drawBadge">等待开奖日</span>
   </div>
 
-  <!-- Recent 5 draws highlight -->
-  <div class="card">
-    <div class="section-title">最近 5 期开奖</div>
-    <div class="recent-draws" id="recentDraws"></div>
-  </div>
-
   <!-- Prediction Panel (highlighted on draw day) -->
   <div class="card prediction-panel" id="predictionPanel">
     <div class="prediction-content">
@@ -589,6 +570,12 @@
       <div class="pred-numbers" id="predNumbers"></div>
       <div class="reasoning" id="reasoning"></div>
     </div>
+  </div>
+
+  <!-- Recent 5 draws highlight -->
+  <div class="card">
+    <div class="section-title">最近 5 期开奖</div>
+    <div class="recent-draws" id="recentDraws"></div>
   </div>
 
   <!-- Stats row -->
@@ -775,8 +762,8 @@ function updateCountdown() {
   if (isToday) {
     badge.textContent = '今天开奖日';
     badge.className = 'draw-day-badge today';
-    document.getElementById('predictionPanel').style.borderColor = 'rgba(255,215,0,0.4)';
-    document.getElementById('predictionPanel').style.boxShadow = '0 0 40px rgba(255,215,0,0.1)';
+    document.getElementById('predictionPanel').style.borderColor = 'rgba(184,134,11,0.4)';
+    document.getElementById('predictionPanel').style.boxShadow = '0 0 30px rgba(184,134,11,0.1)';
   } else {
     const dayName = DAY_NAMES[nextDraw.getDay()];
     const weekPrefix = nextDraw.getDay() > now.getDay() ? '本周' : '下周';
@@ -1044,7 +1031,7 @@ function renderPrediction() {
     reasonsHTML += `<div style="display:flex;gap:6px;flex-wrap:wrap;padding:4px 12px;">`;
     p.frontScores.forEach(s => {
       reasonsHTML += `
-        <div style="display:flex;align-items:center;gap:3px;background:rgba(255,255,255,0.03);padding:4px 8px;border-radius:6px;">
+        <div style="display:flex;align-items:center;gap:3px;background:rgba(0,0,0,0.03);padding:4px 8px;border-radius:6px;">
           <span class="ball front small">${String(s.num).padStart(2,'0')}</span>
           <span style="font-size:0.75em;color:var(--gold);">${s.score}</span>
           ${s.reasons.slice(0,1).map(r => `<span style="font-size:0.65em;color:var(--text-dim);max-width:100px;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;">${r.text}</span>`).join('')}
@@ -1052,7 +1039,7 @@ function renderPrediction() {
     });
     p.backScores.forEach(s => {
       reasonsHTML += `
-        <div style="display:flex;align-items:center;gap:3px;background:rgba(255,255,255,0.03);padding:4px 8px;border-radius:6px;">
+        <div style="display:flex;align-items:center;gap:3px;background:rgba(0,0,0,0.03);padding:4px 8px;border-radius:6px;">
           <span class="ball back small">${String(s.num).padStart(2,'0')}</span>
           <span style="font-size:0.75em;color:var(--gold);">${s.score}</span>
           ${s.reasons.slice(0,1).map(r => `<span style="font-size:0.65em;color:var(--text-dim);max-width:100px;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;">${r.text}</span>`).join('')}
@@ -1067,7 +1054,7 @@ function renderPrediction() {
   reasonsHTML += '<div class="reason-item" style="display:flex;flex-wrap:wrap;gap:6px;">';
   balanced.allFrontScores.slice(0, 10).forEach(s => {
     reasonsHTML += `
-      <div style="display:flex;align-items:center;gap:4px;background:rgba(255,255,255,0.03);padding:4px 8px;border-radius:6px;">
+      <div style="display:flex;align-items:center;gap:4px;background:rgba(0,0,0,0.03);padding:4px 8px;border-radius:6px;">
         <span class="ball front small">${String(s.num).padStart(2,'0')}</span>
         <span style="font-size:0.8em;color:var(--gold);">${s.score}</span>
       </div>`;
@@ -1094,8 +1081,8 @@ function renderCharts() {
   const backAnalysis = analyzeNumbers(DATA, 12, 'back');
 
   // Chart color config
-  const gridColor = 'rgba(255,255,255,0.06)';
-  const tickColor = '#8888aa';
+  const gridColor = 'rgba(0,0,0,0.07)';
+  const tickColor = '#64748b';
 
   // 1. Front Zone Frequency
   const frontLabels = Array.from({length:35}, (_,i) => i+1);
@@ -1109,14 +1096,14 @@ function renderCharts() {
         label: '出现次数',
         data: frontFreqData,
         backgroundColor: frontFreqData.map(v => {
-          if (v >= 9) return 'rgba(255,51,102,0.8)';
-          if (v >= 6) return 'rgba(255,215,0,0.7)';
-          return 'rgba(68,136,255,0.6)';
+          if (v >= 9) return 'rgba(225,29,72,0.75)';
+          if (v >= 6) return 'rgba(184,134,11,0.65)';
+          return 'rgba(59,130,246,0.55)';
         }),
         borderColor: frontFreqData.map(v => {
-          if (v >= 9) return 'rgba(255,51,102,1)';
-          if (v >= 6) return 'rgba(255,215,0,0.9)';
-          return 'rgba(68,136,255,0.9)';
+          if (v >= 9) return 'rgba(225,29,72,1)';
+          if (v >= 6) return 'rgba(184,134,11,0.85)';
+          return 'rgba(59,130,246,0.85)';
         }),
         borderWidth: 1,
         borderRadius: 4,
@@ -1146,14 +1133,14 @@ function renderCharts() {
         label: '出现次数',
         data: backFreqData,
         backgroundColor: backFreqData.map(v => {
-          if (v >= 10) return 'rgba(255,51,102,0.8)';
-          if (v >= 7) return 'rgba(255,215,0,0.7)';
-          return 'rgba(68,136,255,0.6)';
+          if (v >= 10) return 'rgba(225,29,72,0.75)';
+          if (v >= 7) return 'rgba(184,134,11,0.65)';
+          return 'rgba(59,130,246,0.55)';
         }),
         borderColor: backFreqData.map(v => {
-          if (v >= 10) return 'rgba(255,51,102,1)';
-          if (v >= 7) return 'rgba(255,215,0,0.9)';
-          return 'rgba(68,136,255,0.9)';
+          if (v >= 10) return 'rgba(225,29,72,1)';
+          if (v >= 7) return 'rgba(184,134,11,0.85)';
+          return 'rgba(59,130,246,0.85)';
         }),
         borderWidth: 1,
         borderRadius: 6,
@@ -1182,14 +1169,14 @@ function renderCharts() {
         label: '遗漏期数',
         data: missingData,
         backgroundColor: missingData.map(v => {
-          if (v >= 15) return 'rgba(0,240,255,0.7)';
-          if (v >= 8) return 'rgba(255,215,0,0.6)';
-          return 'rgba(255,255,255,0.2)';
+          if (v >= 15) return 'rgba(8,145,178,0.65)';
+          if (v >= 8) return 'rgba(184,134,11,0.55)';
+          return 'rgba(0,0,0,0.1)';
         }),
         borderColor: missingData.map(v => {
-          if (v >= 15) return 'rgba(0,240,255,1)';
-          if (v >= 8) return 'rgba(255,215,0,1)';
-          return 'rgba(255,255,255,0.3)';
+          if (v >= 15) return 'rgba(8,145,178,1)';
+          if (v >= 8) return 'rgba(184,134,11,0.9)';
+          return 'rgba(0,0,0,0.2)';
         }),
         borderWidth: 1,
         borderRadius: 4,
@@ -1211,9 +1198,9 @@ function renderCharts() {
   const avgFreq = frontFreqData.reduce((a,b) => a+b, 0) / 35;
   const hotColdLabels = frontLabels.map(String);
   const hotColdColors = frontFreqData.map(v => {
-    if (v >= avgFreq * 1.3) return 'rgba(255,51,102,0.8)'; // Hot
-    if (v >= avgFreq * 0.7) return 'rgba(255,215,0,0.7)'; // Warm
-    return 'rgba(68,136,255,0.6)'; // Cold
+    if (v >= avgFreq * 1.3) return 'rgba(225,29,72,0.75)'; // Hot
+    if (v >= avgFreq * 0.7) return 'rgba(184,134,11,0.65)'; // Warm
+    return 'rgba(59,130,246,0.55)'; // Cold
   });
 
   charts.hotCold = new Chart(document.getElementById('chartHotCold'), {
@@ -1290,12 +1277,13 @@ function renderStats() {
 // ============================================================
 function renderRecentDraws() {
   const div = document.getElementById('recentDraws');
-  const stratNames = ['均衡策略', '热号追击', '冷号回补'];
-  const stratColors = ['var(--cyan)', 'var(--gold)', 'var(--magenta)'];
+  const stratNames = ['均衡', '热号', '冷号'];
+  const stratCls = ['s1', 's2', 's3'];
 
   div.innerHTML = DATA.slice(0, 5).map((d, i) => {
     const date = new Date(d.dt);
     const dayName = DAY_NAMES[date.getDay()];
+    const dateShort = d.dt.slice(5); // "06-01"
 
     // Run all 3 strategies using only older draws
     const trainingData = DATA.slice(i + 1);
@@ -1307,44 +1295,26 @@ function renderRecentDraws() {
     const fMatchSet = new Set(d.f);
     const bMatchSet = new Set(d.b);
 
+    // Compact: strategy hit badges only
+    const badges = predictions.map((pred, si) => {
+      const fHits = pred.front.filter(n => fMatchSet.has(n)).length;
+      const bHits = pred.back.filter(n => bMatchSet.has(n)).length;
+      const totalHits = fHits + bHits;
+      const dot = totalHits > 0 ? `●${totalHits}` : '○';
+      return `<span class="rd-strat-badge ${stratCls[si]}"><span class="dot">${dot}</span> ${stratNames[si]}</span>`;
+    }).join('');
+
     return `
-      <div class="recent-draw-row" style="flex-wrap:wrap;padding:12px 14px;">
-        <div style="display:flex;align-items:center;gap:8px;width:100%;margin-bottom:6px;">
-          <span class="qihao">${d.qh}期</span>
-          <span class="date">${d.dt} 周${dayName}</span>
-          <span style="color:var(--text-dim);font-size:0.7em;">实际</span>
-          <div class="balls">
-            ${d.f.map(n => `<span class="ball front small">${String(n).padStart(2,'0')}</span>`).join('')}
-          </div>
-          <span style="color:var(--text-dim);">+</span>
-          <div class="balls">
-            ${d.b.map(n => `<span class="ball back small">${String(n).padStart(2,'0')}</span>`).join('')}
-          </div>
+      <div class="recent-draw-row">
+        <span class="rd-qihao">${d.qh}期</span>
+        <span class="rd-date">${dateShort} 周${dayName}</span>
+        <span class="rd-divider"></span>
+        <div class="balls">
+          ${d.f.map(n => `<span class="ball front small">${String(n).padStart(2,'0')}</span>`).join('')}
+          <span style="color:var(--text-dim);margin:0 2px;font-weight:600;font-size:0.85em;">+</span>
+          ${d.b.map(n => `<span class="ball back small">${String(n).padStart(2,'0')}</span>`).join('')}
         </div>
-        ${predictions.map((pred, si) => {
-          const fHits = pred.front.filter(n => fMatchSet.has(n)).length;
-          const bHits = pred.back.filter(n => bMatchSet.has(n)).length;
-          const totalHits = fHits + bHits;
-          return `
-            <div style="display:flex;align-items:center;gap:6px;width:100%;padding:2px 0 2px 8px;border-left:2px solid ${stratColors[si]};margin-left:4px;font-size:0.82em;">
-              <span style="color:${stratColors[si]};font-weight:600;min-width:48px;font-size:0.8em;">${stratNames[si]}</span>
-              <div class="balls">
-                ${pred.front.map(n => {
-                  const hit = fMatchSet.has(n);
-                  return `<span class="ball front small${hit ? ' match' : ''}" style="${hit ? '' : 'opacity:0.45;'}">${String(n).padStart(2,'0')}</span>`;
-                }).join('')}
-              </div>
-              <span style="color:var(--text-dim);">+</span>
-              <div class="balls">
-                ${pred.back.map(n => {
-                  const hit = bMatchSet.has(n);
-                  return `<span class="ball back small${hit ? ' match' : ''}" style="${hit ? '' : 'opacity:0.45;'}">${String(n).padStart(2,'0')}</span>`;
-                }).join('')}
-              </div>
-              <span style="font-weight:600;font-size:0.82em;margin-left:2px;color:${totalHits >= 2 ? 'var(--green)' : totalHits >= 1 ? 'var(--gold)' : 'var(--text-dim)'};">${totalHits > 0 ? '中'+totalHits : '-'}</span>
-            </div>
-          `;
-        }).join('')}
+        ${badges}
       </div>
     `;
   }).join('');
@@ -1524,7 +1494,7 @@ function renderBacktest() {
         ${s.map((st, si) => {
           const t = st.totalMatch;
           const cls = t >= 3 ? 'high' : t >= 1 ? 'mid' : 'low';
-          return `<td class="hit-${cls}" style="border-left:1px solid rgba(255,255,255,0.06);">
+          return `<td class="hit-${cls}" style="border-left:1px solid rgba(0,0,0,0.06);">
             <span title="前区${st.frontMatch} 后区${st.backMatch}">${st.frontMatch}+${st.backMatch}</span>
             <span style="font-weight:700;margin-left:2px;">=${t}</span>
           </td>`;
